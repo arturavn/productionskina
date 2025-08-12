@@ -22,3 +22,17 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Production environment files
+.env.production
+.env.local
+
+# Development files
+*.pid
+*.log
+ngrok.url
+
+# Debug and test files
+debug-*.js
+test-*.js
+*.html.debug

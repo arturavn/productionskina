@@ -142,7 +142,7 @@ const ProductDetail = () => {
   if (productImages && productImages.length > 0) {
     productImages.forEach(img => {
       allImages.push({
-          url: `http://localhost:3001/api/products/images/${img.id}`,
+          url: `${import.meta.env.VITE_API_URL}/products/images/${img.id}`,
          isPrimary: img.isPrimary || false,
          id: img.id,
          displayOrder: img.displayOrder || 0,

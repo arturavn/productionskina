@@ -63,9 +63,8 @@ app.use((req, res, next) => {
   }
 });
 app.use(cors({
- // origin: (process.env.FRONTEND_URL || 'http://localhost:5173').split(',').map(url => url.trim()),
-  origin: '*',
- credentials: true,
+  origin: process.env.FRONTEND_URL || 'https://skinaecopecas.com.br',
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
   exposedHeaders: ['Content-Type', 'Content-Length', 'Content-Disposition']

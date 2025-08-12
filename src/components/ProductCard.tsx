@@ -51,7 +51,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const productImages = productImagesData?.images || [];
   const allImages = [
     normalizedImage,
-    ...productImages.map(img => `http://localhost:3001/api/products/images/${img.id}`)
+    ...productImages.map(img => `${import.meta.env.VITE_API_URL}/products/images/${img.id}`)
   ].filter((img, index, self) => self.indexOf(img) === index);
   
   // Reset do índice quando mudar de produto
