@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste API Carrinho</title>
+</head>
+<body>
+    <h1>Teste API Carrinho</h1>
+    <button onclick="testAPI()">Testar API</button>
+    <div id="result"></div>
+    
+    <script>
+        async function testAPI() {
+            const resultDiv = document.getElementById('result');
+            try {
+                // Limpar localStorage
+                localStorage.clear();
+                
+                // Gerar nova sessão
+                const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                
+                const response = await fetch(`/api/cart/${sessionId}`);
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <h3>Sucesso!</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3>Erro:</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

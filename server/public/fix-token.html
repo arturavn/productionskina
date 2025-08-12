@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corrigir Token - Skina Ecopeças</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #555;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .info {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Corrigir Token - Skina Ecopeças</h1>
+        
+        <div class="section">
+            <h3>1. Atualizar Token</h3>
+            <p>Clique no botão abaixo para atualizar o token com o usuário correto:</p>
+            <button onclick="updateToken()">Atualizar Token</button>
+            <div id="tokenResult"></div>
+        </div>
+        
+        <div class="section">
+            <h3>2. Testar Validação de Cupom</h3>
+            <input type="text" id="couponCode" placeholder="Código do cupom" value="SKINA4010590E">
+            <button onclick="testCoupon()">Testar Cupom</button>
+            <div id="couponResult"></div>
+        </div>
+        
+        <div class="section">
+            <h3>3. Verificar Status</h3>
+            <button onclick="checkStatus()">Verificar Status Atual</button>
+            <div id="statusResult"></div>
+        </div>
+        
+        <div class="section">
+            <h3>4. Ir para Checkout</h3>
+            <button onclick="goToCheckout()">Ir para Checkout</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+        const CORRECT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1YjE1ZGI0NC04ZjE5LTRhZmYtOTc4Yy0yNjVkYzM1YzM5ZDkiLCJlbWFpbCI6ImFydHVyYXZuMjhAZ21haWwuY29tIiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NTMzNjY2MTIsImV4cCI6MTc1Mzk3MTQxMn0.aYvlQH5vhX85ISldLznAeiugtv4myT8jVxY_MaPXgrU';
+        
+        function showResult(elementId, message, isError = false) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${isError ? 'error' : 'success'}">${message}</div>`;
+        }
+        
+        function updateToken() {
+            try {
+                localStorage.setItem('auth_token', CORRECT_TOKEN);
+                showResult('tokenResult', '✅ Token atualizado com sucesso!');
+                
+                // Decodificar e mostrar informações do token
+                const payload = JSON.parse(atob(CORRECT_TOKEN.split('.')[1]));
+                const info = `
+                    <div class="info">
+                        <strong>Informações do Token:</strong><br>
+                        • User ID: ${payload.userId}<br>
+                        • Email: ${payload.email}<br>
+                        • Role: ${payload.role}<br>
+                        • Expira em: ${new Date(payload.exp * 1000).toLocaleString()}
+                    </div>
+                `;
+                document.getElementById('tokenResult').innerHTML += info;
+            } catch (error) {
+                showResult('tokenResult', '❌ Erro ao atualizar token: ' + error.message, true);
+            }
+        }
+        
+        async function testCoupon() {
+            const couponCode = document.getElementById('couponCode').value;
+            const token = localStorage.getItem('auth_token');
+            
+            if (!token) {
+                showResult('couponResult', '❌ Token não encontrado. Clique em "Atualizar Token" primeiro.', true);
+                return;
+            }
+            
+            if (!couponCode) {
+                showResult('couponResult', '❌ Digite um código de cupom.', true);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/coupons/validate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ code: couponCode })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('couponResult', `✅ Cupom válido! Desconto: ${data.discountPercentage}%`);
+                } else {
+                    showResult('couponResult', `❌ Erro: ${data.message || data.error}`, true);
+                }
+            } catch (error) {
+                showResult('couponResult', '❌ Erro na requisição: ' + error.message, true);
+            }
+        }
+        
+        async function checkStatus() {
+            const token = localStorage.getItem('auth_token');
+            
+            let status = '<strong>Status Atual:</strong><br>';
+            status += `• Token presente: ${token ? 'Sim' : 'Não'}<br>`;
+            
+            if (token) {
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    status += `• User ID: ${payload.userId}<br>`;
+                    status += `• Email: ${payload.email}<br>`;
+                    status += `• Expira em: ${new Date(payload.exp * 1000).toLocaleString()}<br>`;
+                    
+                    // Testar se o token funciona
+                    const response = await fetch(`${API_BASE}/auth/profile`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const userData = await response.json();
+                        status += `• Status do token: ✅ Válido<br>`;
+                        status += `• Nome do usuário: ${userData.user?.name}<br>`;
+                    } else {
+                        status += `• Status do token: ❌ Inválido<br>`;
+                    }
+                } catch (error) {
+                    status += `• Erro ao decodificar token: ${error.message}<br>`;
+                }
+            }
+            
+            document.getElementById('statusResult').innerHTML = `<div class="info">${status}</div>`;
+        }
+        
+        function goToCheckout() {
+            window.location.href = '/checkout';
+        }
+        
+        // Verificar status automaticamente ao carregar
+        window.onload = function() {
+            checkStatus();
+        };
+    </script>
+</body>
+</html>

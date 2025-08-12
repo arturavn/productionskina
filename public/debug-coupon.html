@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Cupom - Skina Ecopeças</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug Cupom - Skina Ecopeças</h1>
+        
+        <div class="info">
+            Esta página ajuda a debugar problemas com cupons.
+        </div>
+
+        <h3>1. Verificar Token e Usuário</h3>
+        <button class="button" onclick="checkAuth()">Verificar Autenticação</button>
+        <div id="authResult"></div>
+
+        <h3>2. Testar Validação de Cupom</h3>
+        <input type="text" id="couponCode" placeholder="Código do cupom (ex: SKINA4010590E)" value="SKINA4010590E">
+        <button class="button" onclick="testCoupon()">Validar Cupom</button>
+        <div id="couponResult"></div>
+
+        <h3>3. Listar Cupons do Usuário</h3>
+        <button class="button" onclick="listUserCoupons()">Listar Meus Cupons</button>
+        <div id="couponsResult"></div>
+
+        <h3>4. Informações do Sistema</h3>
+        <button class="button" onclick="showSystemInfo()">Mostrar Info do Sistema</button>
+        <div id="systemInfo"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+
+        function showResult(elementId, content, isError = false) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${isError ? 'error' : 'success'}">${content}</div>`;
+        }
+
+        function showInfo(elementId, content) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="info">${content}</div>`;
+        }
+
+        async function checkAuth() {
+            try {
+                const token = localStorage.getItem('auth_token');
+                
+                if (!token) {
+                    showResult('authResult', '❌ Nenhum token encontrado no localStorage', true);
+                    return;
+                }
+
+                // Decodificar token JWT (apenas para debug - não é seguro em produção)
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                
+                showInfo('authResult', `
+                    <strong>Token encontrado:</strong><br>
+                    • User ID: ${payload.userId}<br>
+                    • Email: ${payload.email}<br>
+                    • Role: ${payload.role}<br>
+                    • Expira em: ${new Date(payload.exp * 1000).toLocaleString()}<br>
+                    <br>
+                    <strong>Testando perfil...</strong>
+                `);
+
+                // Testar chamada para o perfil
+                const response = await fetch(`${API_BASE}/auth/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('authResult', `
+                        ✅ <strong>Autenticação OK!</strong><br>
+                        • User ID: ${payload.userId}<br>
+                        • Email: ${payload.email}<br>
+                        • Nome: ${data.user.name}<br>
+                        • Role: ${payload.role}<br>
+                        • Status: ${data.user.status}
+                    `);
+                } else {
+                    const errorData = await response.json();
+                    showResult('authResult', `❌ Erro na autenticação: ${errorData.message || errorData.error}`, true);
+                }
+            } catch (error) {
+                showResult('authResult', `❌ Erro: ${error.message}`, true);
+            }
+        }
+
+        async function testCoupon() {
+            try {
+                const token = localStorage.getItem('auth_token');
+                const couponCode = document.getElementById('couponCode').value;
+                
+                if (!token) {
+                    showResult('couponResult', '❌ Nenhum token encontrado. Faça login primeiro.', true);
+                    return;
+                }
+
+                if (!couponCode) {
+                    showResult('couponResult', '❌ Digite um código de cupom', true);
+                    return;
+                }
+
+                showInfo('couponResult', '🔄 Validando cupom...');
+
+                const response = await fetch(`${API_BASE}/coupons/validate`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ code: couponCode })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showResult('couponResult', `
+                        ✅ <strong>Cupom válido!</strong><br>
+                        • Código: ${data.coupon.code}<br>
+                        • Desconto: ${data.coupon.discountPercentage}%<br>
+                        • Usuário: ${data.coupon.userId}<br>
+                        • Usado: ${data.coupon.isUsed ? 'Sim' : 'Não'}<br>
+                        • Expira em: ${new Date(data.coupon.expiresAt).toLocaleString()}
+                    `);
+                } else {
+                    showResult('couponResult', `❌ <strong>Erro:</strong> ${data.message || data.error}`, true);
+                }
+            } catch (error) {
+                showResult('couponResult', `❌ Erro: ${error.message}`, true);
+            }
+        }
+
+        async function listUserCoupons() {
+            try {
+                const token = localStorage.getItem('auth_token');
+                
+                if (!token) {
+                    showResult('couponsResult', '❌ Nenhum token encontrado. Faça login primeiro.', true);
+                    return;
+                }
+
+                showInfo('couponsResult', '🔄 Carregando cupons...');
+
+                const response = await fetch(`${API_BASE}/coupons`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (data.coupons && data.coupons.length > 0) {
+                        let couponsHtml = '<strong>Seus cupons:</strong><br>';
+                        data.coupons.forEach(coupon => {
+                            couponsHtml += `
+                                • ${coupon.code} - ${coupon.discountPercentage}% 
+                                (${coupon.isUsed ? 'Usado' : 'Disponível'}) 
+                                - Expira: ${new Date(coupon.expiresAt).toLocaleDateString()}<br>
+                            `;
+                        });
+                        showResult('couponsResult', couponsHtml);
+                    } else {
+                        showInfo('couponsResult', 'Você não possui cupons.');
+                    }
+                } else {
+                    showResult('couponsResult', `❌ Erro: ${data.message || data.error}`, true);
+                }
+            } catch (error) {
+                showResult('couponsResult', `❌ Erro: ${error.message}`, true);
+            }
+        }
+
+        function showSystemInfo() {
+            const token = localStorage.getItem('auth_token');
+            let info = `
+                <strong>Informações do Sistema:</strong><br>
+                • URL da API: ${API_BASE}<br>
+                • Token presente: ${token ? 'Sim' : 'Não'}<br>
+                • localStorage disponível: ${typeof(Storage) !== 'undefined' ? 'Sim' : 'Não'}<br>
+                • User Agent: ${navigator.userAgent}<br>
+                • Timestamp: ${new Date().toISOString()}<br>
+            `;
+            
+            if (token) {
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    info += `<br><strong>Dados do Token:</strong><br>`;
+                    info += `• User ID: ${payload.userId}<br>`;
+                    info += `• Email: ${payload.email}<br>`;
+                    info += `• Role: ${payload.role}<br>`;
+                    info += `• Emitido em: ${new Date(payload.iat * 1000).toLocaleString()}<br>`;
+                    info += `• Expira em: ${new Date(payload.exp * 1000).toLocaleString()}<br>`;
+                } catch (e) {
+                    info += `<br>❌ Erro ao decodificar token: ${e.message}`;
+                }
+            }
+            
+            showInfo('systemInfo', info);
+        }
+
+        // Verificar autenticação automaticamente ao carregar a página
+        window.onload = function() {
+            checkAuth();
+        };
+    </script>
+</body>
+</html>

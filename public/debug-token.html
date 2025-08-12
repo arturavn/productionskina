@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Token - Skina Ecopeças</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .token-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .success {
+            color: #28a745;
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Debug Token - Skina Ecopeças</h1>
+        
+        <h3>Token Atual no localStorage:</h3>
+        <div class="token-info" id="currentToken">Carregando...</div>
+        
+        <h3>Status do Token:</h3>
+        <div id="tokenStatus">Verificando...</div>
+        
+        <h3>Ações:</h3>
+        <button onclick="checkToken()">Verificar Token</button>
+        <button onclick="updateToken()">Atualizar Token</button>
+        <button onclick="testOrders()">Testar Pedidos</button>
+        <button onclick="clearToken()">Limpar Token</button>
+        
+        <h3>Resultado dos Testes:</h3>
+        <div id="testResult"></div>
+    </div>
+
+    <script>
+        const VALID_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhZGZhNzNkZi1hNzY4LTQ5YzQtOGJjZC1hNzY4ZjU5ZjU5ZjUiLCJlbWFpbCI6ImFydHVyYXZuMjhAZ21haWwuY29tIiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NTMzMzE5MzksImV4cCI6MTc1MzkzNjczOX0.dpKAr4VeZEyRVGE-ISoMtAgwrxFGxzTrWXMRIlywBIk';
+        
+        function showCurrentToken() {
+            const token = localStorage.getItem('auth_token');
+            document.getElementById('currentToken').textContent = token || 'Nenhum token encontrado';
+        }
+        
+        function checkToken() {
+            const token = localStorage.getItem('auth_token');
+            const statusDiv = document.getElementById('tokenStatus');
+            
+            if (!token) {
+                statusDiv.innerHTML = '<div class="error">Nenhum token encontrado no localStorage</div>';
+                return;
+            }
+            
+            try {
+                // Decodificar o payload do JWT (sem verificar assinatura)
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const now = Math.floor(Date.now() / 1000);
+                const isExpired = payload.exp < now;
+                
+                statusDiv.innerHTML = `
+                    <div class="${isExpired ? 'error' : 'success'}">
+                        <strong>Token ${isExpired ? 'EXPIRADO' : 'VÁLIDO'}</strong><br>
+                        User ID: ${payload.userId}<br>
+                        Email: ${payload.email}<br>
+                        Role: ${payload.role}<br>
+                        Expira em: ${new Date(payload.exp * 1000).toLocaleString()}<br>
+                        Criado em: ${new Date(payload.iat * 1000).toLocaleString()}
+                    </div>
+                `;
+            } catch (e) {
+                statusDiv.innerHTML = '<div class="error">Token inválido ou malformado</div>';
+            }
+        }
+        
+        function updateToken() {
+            localStorage.setItem('auth_token', VALID_TOKEN);
+            showCurrentToken();
+            checkToken();
+            document.getElementById('testResult').innerHTML = '<div class="success">Token atualizado com sucesso!</div>';
+        }
+        
+        function clearToken() {
+            localStorage.removeItem('auth_token');
+            showCurrentToken();
+            document.getElementById('tokenStatus').textContent = 'Token removido';
+            document.getElementById('testResult').innerHTML = '<div class="success">Token removido do localStorage</div>';
+        }
+        
+        async function testOrders() {
+            const token = localStorage.getItem('auth_token');
+            const resultDiv = document.getElementById('testResult');
+            
+            if (!token) {
+                resultDiv.innerHTML = '<div class="error">Nenhum token encontrado. Clique em "Atualizar Token" primeiro.</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/orders', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>Sucesso!</strong><br>
+                            Encontrados ${data.data.orders.length} pedidos<br>
+                            Total de pedidos: ${data.data.pagination.totalOrders}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <strong>Erro:</strong> ${data.message}<br>
+                            Status: ${response.status}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <strong>Erro de rede:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // Inicializar página
+        document.addEventListener('DOMContentLoaded', function() {
+            showCurrentToken();
+            checkToken();
+        });
+    </script>
+</body>
+</html>
