@@ -34,9 +34,13 @@ BEGIN
     END IF;
 END $$;
 
--- Inserir slides iniciais (dados que estavam em memória)
-INSERT INTO slides (id, title, subtitle, background_image, cta_text, cta_link, display_order, is_active) VALUES 
-('550e8400-e29b-41d4-a716-446655440001', 'Peças Automotivas de Qualidade', 'Encontre as melhores peças para seu veículo com garantia e preço justo', 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80', 'Ver Produtos', '/products', 1, true),
-('550e8400-e29b-41d4-a716-446655440002', 'Entrega Rápida em Todo Brasil', 'Receba suas peças com segurança e agilidade onde você estiver', 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80', 'Saiba Mais', '/shipping', 2, true),
-('550e8400-e29b-41d4-a716-446655440003', 'Suporte Especializado', 'Nossa equipe está pronta para ajudar você a encontrar a peça certa', 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80', 'Fale Conosco', '/contact', 3, true)
-ON CONFLICT (id) DO NOTHING;
+-- Inserir slides iniciais (dados que estavam em memória) apenas se não existirem
+INSERT INTO slides (id, title, subtitle, background_image, cta_text, cta_link, display_order, is_active) 
+SELECT '550e8400-e29b-41d4-a716-446655440001'::uuid, 'Peças Automotivas de Qualidade', 'Encontre as melhores peças para seu veículo com garantia e preço justo', 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80', 'Ver Produtos', '/products', 1, true
+WHERE NOT EXISTS (SELECT 1 FROM slides WHERE id = '550e8400-e29b-41d4-a716-446655440001'::uuid)
+UNION ALL
+SELECT '550e8400-e29b-41d4-a716-446655440002'::uuid, 'Entrega Rápida em Todo Brasil', 'Receba suas peças com segurança e agilidade onde você estiver', 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80', 'Saiba Mais', '/shipping', 2, true
+WHERE NOT EXISTS (SELECT 1 FROM slides WHERE id = '550e8400-e29b-41d4-a716-446655440002'::uuid)
+UNION ALL
+SELECT '550e8400-e29b-41d4-a716-446655440003'::uuid, 'Suporte Especializado', 'Nossa equipe está pronta para ajudar você a encontrar a peça certa', 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80', 'Fale Conosco', '/contact', 3, true
+WHERE NOT EXISTS (SELECT 1 FROM slides WHERE id = '550e8400-e29b-41d4-a716-446655440003'::uuid);
