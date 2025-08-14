@@ -3,7 +3,7 @@
 
 -- Inserir usuário administrador padrão
 INSERT INTO users (id, name, email, password, role, status) VALUES 
-('550e8400-e29b-41d4-a716-446655440000', 'Administrador', 'admin@skinaecopecas.com.br', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'active')
+('550e8400-e29b-41d4-a716-446655440000', 'Administrador', 'admin@skinaecopecas.com.br', '$2a$10$yUkyAWqxSERn6PFlUoOTJOkrbsKs6Q3eM5909Up5tJlJ7lzMAfRUi', 'admin', 'active')
 ON CONFLICT (email) DO NOTHING;
 
 -- Inserir categorias funcionais (compatíveis com o frontend)
