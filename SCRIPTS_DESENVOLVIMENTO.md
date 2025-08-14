@@ -2,6 +2,114 @@
 
 Este projeto inclui scripts automatizados para facilitar o desenvolvimento em diferentes ambientes e redes.
 
+## 📁 Arquivos Criados
+
+### Configurações de Ambiente
+
+#### Backend (server/)
+- **`server/.env`** - Configuração padrão (produção/VPS)
+- **`server/.env.local`** - Configuração para desenvolvimento local
+
+#### Frontend (raiz do projeto)
+- **`.env`** - Configuração padrão (produção/VPS)
+- **`.env.local`** - Configuração para desenvolvimento local
+- **`vite.config.ts`** - Configuração do Vite (funciona para ambos os ambientes)
+
+### Scripts de Automação
+- **`switch-env.sh`** - Alterna entre configurações de ambiente (backend + frontend)
+- **`start-local.sh`** - Inicia desenvolvimento local
+- **`start-production.sh`** - Inicia em modo produção
+
+## 🚀 Como Usar
+
+### 1. Desenvolvimento Local
+
+```bash
+# Inicia automaticamente em modo desenvolvimento
+./start-local.sh
+```
+
+**O que acontece:**
+- Alterna para configuração `.env.local` (backend e frontend)
+- Mantém `vite.config.ts` original (já configurado para desenvolvimento)
+- Instala dependências se necessário
+- Inicia backend (porta 3001) e frontend (porta 5173)
+- URLs disponíveis:
+  - Frontend: http://localhost:5173
+  - Backend: http://localhost:3001
+  - API: http://localhost:3001/api
+
+### 2. Preparação para Produção/VPS
+
+```bash
+# Prepara arquivos para produção (antes de enviar para VPS)
+./start-production.sh
+```
+
+**O que acontece:**
+- Alterna para configuração `.env` (produção - backend e frontend)
+- Restaura `vite.config.ts` original do backup
+- Instala dependências de produção
+- Constrói a aplicação (build)
+- **Prepara os arquivos para serem enviados ao VPS**
+
+> **Nota:** Este script é usado localmente apenas para preparar os arquivos antes de fazer o deploy no VPS. No VPS, você usará os comandos específicos documentados em `COMANDOS_VPS.md`.
+
+### 3. Alternância Manual de Ambiente
+
+```bash
+# Alterna para desenvolvimento
+./switch-env.sh local
+
+# Alterna para produção
+./switch-env.sh production
+
+# Verifica status atual
+./switch-env.sh status
+
+# Cria backup da configuração atual
+./switch-env.sh backup
+
+# Restaura backup
+./switch-env.sh restore
+```
+
+## ⚙️ Configurações Específicas do Frontend
+
+### Variáveis de Ambiente
+
+#### `.env` (Produção)
+```bash
+VITE_API_URL=https://skinaecopecas.com.br/api
+```
+
+#### `.env.local` (Desenvolvimento)
+```bash
+VITE_API_URL=http://localhost:3001/api
+```
+
+### Configurações do Vite
+
+#### `vite.config.ts`
+- Configuração única que funciona para desenvolvimento e produção
+- Proxy configurado para `http://localhost:3001/api` em desenvolvimento
+- Build otimizado para produção
+- Hot reload automático em modo desenvolvimento
+
+### Como o Sistema Funciona
+
+1. **Desenvolvimento Local:**
+   - `switch-env.sh local` copia `.env.local` → `.env`
+   - `vite.config.ts` detecta automaticamente o modo desenvolvimento
+   - Frontend faz requisições para `http://localhost:3001/api`
+   - Proxy do Vite redireciona `/api` para o backend local
+
+2. **Preparação para Produção/VPS:**
+   - `switch-env.sh production` restaura arquivos originais do backup
+   - `vite.config.ts` funciona em modo produção
+   - Build preparado para `https://skinaecopecas.com.br/api`
+   - Arquivos prontos para deploy no VPS (onde nginx faz proxy reverso)
+
 ## 📋 Scripts Disponíveis
 
 ### 1. `start-dev-auto.sh` - Configuração Completa

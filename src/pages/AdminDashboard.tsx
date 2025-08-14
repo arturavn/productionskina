@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useProducts, useAdminProducts, useLogout, useAdminDashboard, useAdminUsers, useAdminOrders, useUpdateOrderStatus, useDeleteOrder, useCreateProduct, useUpdateProduct, useDeleteProduct, useProductImages, useUploadProductImages, useSetPrimaryImage, useDeleteImage, useUpdateUser, useDeleteUser, useDeactivateUser, useActivateUser, usePromoteUser, useDemoteUser, useCategories, useResetAllViewCounts, useAdminUserById, useAdminSlides, useCreateSlide, useUpdateSlide, useDeleteSlide, useReorderSlides } from '@/hooks/useApi';
+import { useProducts, useAdminProducts, useLogout, useAdminDashboard, useAdminUsers, useAdminOrders, useUpdateOrderStatus, useDeleteOrder, useCreateProduct, useUpdateProduct, useDeleteProduct, useProductImages, useUploadProductImages, useSetPrimaryImage, useDeleteImage, useUpdateUser, useDeleteUser, useDeactivateUser, useActivateUser, usePromoteUser, useDemoteUser, usePromoteToCollaborator, useDemoteFromCollaborator, useCategories, useResetAllViewCounts, useAdminUserById, useAdminSlides, useCreateSlide, useUpdateSlide, useDeleteSlide, useReorderSlides, useAuth } from '@/hooks/useApi';
 import { api } from '@/services/api';
 import AdminOrderDetailsModal from '@/components/AdminOrderDetailsModal';
 import ImageManager from '@/components/ImageManager';
@@ -187,6 +187,7 @@ interface OrderData {
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState(() => {
     return localStorage.getItem('adminActiveTab') || 'dashboard';
   });
@@ -273,6 +274,8 @@ const AdminDashboard = () => {
   const activateUserMutation = useActivateUser();
   const promoteUserMutation = usePromoteUser();
   const demoteUserMutation = useDemoteUser();
+  const promoteToCollaboratorMutation = usePromoteToCollaborator();
+  const demoteFromCollaboratorMutation = useDemoteFromCollaborator();
   
   // Mutation para criação de cupom
   const [isCreatingCoupon, setIsCreatingCoupon] = useState(false);
@@ -768,6 +771,26 @@ const AdminDashboard = () => {
     }
   };
 
+  const handlePromoteToCollaborator = async (userId: string, userName: string) => {
+    if (window.confirm(`Tem certeza que deseja promover "${userName}" para colaborador?`)) {
+      try {
+        await promoteToCollaboratorMutation.mutateAsync(userId);
+      } catch (error) {
+        console.error('Erro ao promover usuário para colaborador:', error);
+      }
+    }
+  };
+
+  const handleDemoteFromCollaborator = async (userId: string, userName: string) => {
+    if (window.confirm(`Tem certeza que deseja rebaixar "${userName}" para usuário comum?`)) {
+      try {
+        await demoteFromCollaboratorMutation.mutateAsync(userId);
+      } catch (error) {
+        console.error('Erro ao rebaixar colaborador:', error);
+      }
+    }
+  };
+
   // Função para criar cupom
   const handleCreateCoupon = (user: User) => {
     setSelectedUserForCoupon(user);
@@ -1169,14 +1192,25 @@ const AdminDashboard = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="products">Produtos</TabsTrigger>
-            <TabsTrigger value="categories">Categorias</TabsTrigger>
-            <TabsTrigger value="orders">Pedidos</TabsTrigger>
-            <TabsTrigger value="users">Usuários</TabsTrigger>
-            <TabsTrigger value="slides">Slides</TabsTrigger>
-            <TabsTrigger value="reports">Relatórios</TabsTrigger>
+          <TabsList className={`grid w-full ${user?.role === 'admin' ? 'grid-cols-7' : 'grid-cols-3'}`}>
+            {user?.role === 'admin' && (
+              <>
+                <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+                <TabsTrigger value="products">Produtos</TabsTrigger>
+                <TabsTrigger value="categories">Categorias</TabsTrigger>
+                <TabsTrigger value="orders">Pedidos</TabsTrigger>
+                <TabsTrigger value="users">Usuários</TabsTrigger>
+                <TabsTrigger value="slides">Slides</TabsTrigger>
+                <TabsTrigger value="reports">Relatórios</TabsTrigger>
+              </>
+            )}
+            {user?.role === 'colaborador' && (
+              <>
+                <TabsTrigger value="products">Produtos</TabsTrigger>
+                <TabsTrigger value="categories">Categorias</TabsTrigger>
+                <TabsTrigger value="orders">Pedidos</TabsTrigger>
+              </>
+            )}
           </TabsList>
 
           {/* Dashboard Tab */}
@@ -2216,6 +2250,7 @@ const AdminDashboard = () => {
                   <SelectContent>
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="colaborador">Colaborador</SelectItem>
                     <SelectItem value="user">Usuário</SelectItem>
                   </SelectContent>
                 </Select>
@@ -2257,8 +2292,12 @@ const AdminDashboard = () => {
                           <TableCell className="font-medium">{user.name}</TableCell>
                           <TableCell>{user.email}</TableCell>
                           <TableCell>
-                            <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                              {user.role === 'admin' ? 'Admin' : 'Usuário'}
+                            <Badge variant={
+                              user.role === 'admin' ? 'default' : 
+                              user.role === 'colaborador' ? 'outline' : 'secondary'
+                            }>
+                              {user.role === 'admin' ? 'Admin' : 
+                               user.role === 'colaborador' ? 'Colaborador' : 'Usuário'}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -2288,17 +2327,51 @@ const AdminDashboard = () => {
                               >
                                 <DollarSign className="h-4 w-4" />
                               </Button>
-                              {user.role === 'user' ? (
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => handlePromoteUser(user.id, user.name)}
-                                  title="Promover para admin"
-                                  className="text-green-600 hover:text-green-700"
-                                >
-                                  <TrendingUp className="h-4 w-4" />
-                                </Button>
-                              ) : (
+                              {user.role === 'user' && (
+                                <>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handlePromoteToCollaborator(user.id, user.name)}
+                                    title="Promover para colaborador"
+                                    className="text-blue-600 hover:text-blue-700"
+                                  >
+                                    <TrendingUp className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handlePromoteUser(user.id, user.name)}
+                                    title="Promover para admin"
+                                    className="text-green-600 hover:text-green-700"
+                                  >
+                                    <TrendingUp className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                              {user.role === 'colaborador' && (
+                                <>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handlePromoteUser(user.id, user.name)}
+                                    title="Promover para admin"
+                                    className="text-green-600 hover:text-green-700"
+                                  >
+                                    <TrendingUp className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handleDemoteFromCollaborator(user.id, user.name)}
+                                    title="Rebaixar para usuário"
+                                    className="text-orange-600 hover:text-orange-700"
+                                  >
+                                    <TrendingDown className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                              {user.role === 'admin' && (
                                 <Button 
                                   variant="ghost" 
                                   size="sm"
@@ -2528,15 +2601,15 @@ const AdminDashboard = () => {
                         <p className="text-xs text-muted-foreground">Taxa de Conversão</p>
                       </div>
                       <div className="text-center p-3 bg-green-50 rounded-lg">
-                        <p className="text-2xl font-bold text-green-600">{dashboardData.conversionMetrics.avg_orders_per_customer}</p>
+                        <p className="text-2xl font-bold text-green-600">{dashboardData.conversionMetrics.avg_orders_per_customer.toString()}</p>
                         <p className="text-xs text-muted-foreground">Pedidos por Cliente</p>
                       </div>
                       <div className="text-center p-3 bg-purple-50 rounded-lg">
-                        <p className="text-2xl font-bold text-purple-600">R$ {parseFloat(dashboardData.conversionMetrics.avg_order_value || 0).toFixed(2)}</p>
+                        <p className="text-2xl font-bold text-purple-600">R$ {(dashboardData.conversionMetrics.avg_order_value || 0).toFixed(2)}</p>
                         <p className="text-xs text-muted-foreground">Ticket Médio</p>
                       </div>
                       <div className="text-center p-3 bg-orange-50 rounded-lg">
-                        <p className="text-2xl font-bold text-orange-600">{dashboardData.conversionMetrics.unique_customers}</p>
+                        <p className="text-2xl font-bold text-orange-600">{dashboardData.conversionMetrics.unique_customers.toString()}</p>
                         <p className="text-xs text-muted-foreground">Clientes Únicos</p>
                       </div>
                     </div>

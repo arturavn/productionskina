@@ -55,7 +55,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <p className="font-medium">E-mail</p>
-                    <p className="text-muted-foreground">skinapecas@gmail.com</p>
+                    <p className="text-muted-foreground">contato@skinaecopecas.com.br</p>
                   </div>
                 </div>
 
@@ -65,7 +65,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <p className="font-medium">Endereço</p>
-                    <p className="text-muted-foreground">SHN Área Especial, 170<br />Taguatinga Norte, Brasília - DF<br />72130-721</p>
+                    <p className="text-muted-foreground">SHN, Area Especial 162 Área Especial<br />Taguatinga norte, Brasília - DF<br />72130-721</p>
                   </div>
                 </div>
 

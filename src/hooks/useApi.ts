@@ -683,6 +683,36 @@ export const useDemoteUser = () => {
   });
 };
 
+export const usePromoteToCollaborator = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (userId: string) => api.promoteToCollaborator(userId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      toast.success(data.message || 'Usuário promovido para colaborador com sucesso!');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao promover usuário para colaborador');
+    },
+  });
+};
+
+export const useDemoteFromCollaborator = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (userId: string) => api.demoteFromCollaborator(userId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      toast.success(data.message || 'Colaborador rebaixado para usuário com sucesso!');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao rebaixar colaborador');
+    },
+  });
+};
+
 export const useAdminOrders = (params?: {
   page?: number;
   limit?: number;

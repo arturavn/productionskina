@@ -334,12 +334,39 @@ class User {
   static async clearResetToken(userId) {
     const sql = `
       UPDATE users 
-      SET reset_token = NULL, reset_token_expires = NULL, updated_at = CURRENT_TIMESTAMP 
-      WHERE id = $1 
-      RETURNING *
+      SET reset_token = NULL, reset_token_expires = NULL, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
     `;
     const result = await query(sql, [userId]);
     return result.rows.length > 0;
+  }
+
+  // Métodos para verificar permissões baseadas no role
+  isAdmin() {
+    return this.role === 'admin';
+  }
+
+  isColaborador() {
+    return this.role === 'colaborador';
+  }
+
+  isUser() {
+    return this.role === 'user';
+  }
+
+  // Verifica se tem acesso ao painel administrativo
+  hasAdminAccess() {
+    return this.role === 'admin' || this.role === 'colaborador';
+  }
+
+  // Verifica se tem acesso completo (apenas admin)
+  hasFullAdminAccess() {
+    return this.role === 'admin';
+  }
+
+  // Verifica se tem acesso restrito (colaborador)
+  hasRestrictedAdminAccess() {
+    return this.role === 'colaborador';
   }
 
   // Converter para JSON (para APIs)

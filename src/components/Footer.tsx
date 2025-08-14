@@ -33,11 +33,11 @@ const Footer = () => {
               </div>
               <div className="flex items-center space-x-3">
                 <Mail className="h-5 w-5 text-skina-green" />
-                <span className="text-gray-300">skinapecas@gmail.com</span>
+                <span className="text-gray-300">contato@skinaecopecas.com.br</span>
               </div>
               <div className="flex items-center space-x-3">
                 <MapPin className="h-5 w-5 text-skina-green" />
-                <span className="text-gray-300">SHN Área Especial, 170<br />Taguatinga Norte, Brasília - DF<br />72130-721</span>
+                <span className="text-gray-300">SHN, Area Especial 162 Área Especial<br />Taguatinga norte, Brasília - DF<br />72130-721</span>
               </div>
               <div className="flex items-center space-x-3">
                 <Clock className="h-5 w-5 text-skina-green" />

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, User, Menu, X, ChevronDown } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, ChevronDown, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import SearchDropdown from '@/components/SearchDropdown';
@@ -20,7 +20,7 @@ const Header = () => {
 
   // Integração com API para categorias
   const { data: categoriesData } = useCategories();
-  const apiCategories = categoriesData?.data?.categories || [];
+  const apiCategories = categoriesData?.categories || [];
 
   // Filtrar apenas as categorias que correspondem ao painel administrativo
   const adminCategoryNames = ['motores', 'suspensao', 'freios', 'acessorios', 'transmissao', 'farois-eletrica'];
@@ -239,6 +239,15 @@ const Header = () => {
                     <ShoppingCart className="h-4 w-4 mr-3" />
                     <span className="font-medium text-gray-700 dark:text-gray-300">Meus Pedidos</span>
                   </DropdownMenuItem>
+                  {(user.role === 'admin' || user.role === 'colaborador') && (
+                    <DropdownMenuItem
+                      onClick={() => handleProfileClick('/admin')}
+                      className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer rounded-lg mx-2 my-1"
+                    >
+                      <Shield className="h-4 w-4 mr-3" />
+                      <span className="font-medium text-gray-700 dark:text-gray-300">Painel Admin</span>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem
                     onClick={handleLogout}
                     className="px-4 py-3 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200 cursor-pointer rounded-lg mx-2 my-1 text-red-600 dark:text-red-400"
@@ -389,6 +398,20 @@ const Header = () => {
                        <ShoppingCart className="h-4 w-4 mr-3" />
                        <span className="text-lg">Meus Pedidos</span>
                      </Button>
+                     
+                     {(user.role === 'admin' || user.role === 'colaborador') && (
+                       <Button 
+                         variant="ghost" 
+                         onClick={() => {
+                           handleProfileClick('/admin');
+                           toggleMenu();
+                         }}
+                         className="w-full justify-start text-gray-700 dark:text-gray-300 hover:text-skina-blue dark:hover:text-skina-blue hover:bg-skina-light-blue dark:hover:bg-skina-light-blue rounded-xl py-3 transition-all duration-300 font-medium"
+                       >
+                         <Shield className="h-4 w-4 mr-3" />
+                         <span className="text-lg">Painel Admin</span>
+                       </Button>
+                     )}
                     
                     <Button 
                       variant="ghost" 

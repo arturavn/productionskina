@@ -77,7 +77,8 @@ const handleMulterErrors = (err, req, res, next) => {
 };
 
 // Middleware de autenticação admin
-const requireAdmin = (req, res, next) => {
+// Middleware para verificar se o usuário está autenticado
+const requireAuth = (req, res, next) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
   
   if (!token) {
@@ -89,14 +90,6 @@ const requireAdmin = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'skina-ecopecas-secret-key-2024');
-    
-    if (decoded.role !== 'admin') {
-      return res.status(403).json({
-        error: 'Acesso negado',
-        message: 'Apenas administradores podem acessar esta funcionalidade'
-      });
-    }
-    
     req.user = decoded;
     next();
   } catch (error) {
@@ -106,6 +99,34 @@ const requireAdmin = (req, res, next) => {
     });
   }
 };
+
+// Middleware para verificar se o usuário tem acesso administrativo (admin ou colaborador)
+const requireAdminAccess = (req, res, next) => {
+  if (!req.user || !['admin', 'colaborador'].includes(req.user.role)) {
+    return res.status(403).json({
+      error: 'Acesso negado',
+      message: 'Você não tem permissão para acessar esta funcionalidade'
+    });
+  }
+  next();
+};
+
+// Middleware para verificar se o usuário é admin completo
+const requireFullAdmin = (req, res, next) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({
+      error: 'Acesso negado',
+      message: 'Apenas administradores completos podem acessar esta funcionalidade'
+    });
+  }
+  next();
+};
+
+// Middleware combinado para autenticação + acesso administrativo
+const requireAdmin = [requireAuth, requireAdminAccess];
+
+// Middleware combinado para autenticação + admin completo
+const requireFullAdminAccess = [requireAuth, requireFullAdmin];
 
 
 
@@ -791,8 +812,8 @@ router.delete('/orders/:id', requireAdmin, [
 // ===== ROTAS DE USUÁRIOS =====
 
 // GET /api/admin/users - Listar todos os usuários
-router.get('/users', requireAdmin, [
-  query('role').optional().isIn(['customer', 'admin']).withMessage('Role inválida'),
+router.get('/users', requireFullAdminAccess, [
+  query('role').optional().isIn(['user', 'admin', 'colaborador']).withMessage('Role inválida'),
   query('page').optional().isInt({ min: 1 }).withMessage('Página deve ser um número positivo'),
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limite deve ser entre 1 e 100')
 ], handleValidationErrors, async (req, res) => {
@@ -836,7 +857,7 @@ router.get('/users', requireAdmin, [
 });
 
 // GET /api/admin/users/:id - Buscar usuário por ID
-router.get('/users/:id', requireAdmin, [
+router.get('/users/:id', requireFullAdminAccess, [
   param('id').notEmpty().withMessage('ID do usuário é obrigatório')
 ], handleValidationErrors, async (req, res) => {
   try {
@@ -875,7 +896,7 @@ router.get('/users/:id', requireAdmin, [
 });
 
 // PUT /api/admin/users/:id/status - Ativar/Desativar usuário
-router.put('/users/:id/status', requireAdmin, [
+router.put('/users/:id/status', requireFullAdminAccess, [
   param('id').notEmpty().withMessage('ID do usuário é obrigatório'),
   body('isActive').isBoolean().withMessage('Status deve ser verdadeiro ou falso')
 ], handleValidationErrors, async (req, res) => {
@@ -909,11 +930,11 @@ router.put('/users/:id/status', requireAdmin, [
 });
 
 // PUT /api/admin/users/:id - Editar usuário
-router.put('/users/:id', requireAdmin, [
+router.put('/users/:id', requireFullAdminAccess, [
   param('id').notEmpty().withMessage('ID do usuário é obrigatório'),
   body('name').optional().isLength({ min: 2 }).withMessage('Nome deve ter pelo menos 2 caracteres'),
   body('email').optional().isEmail().withMessage('Email inválido'),
-  body('role').optional().isIn(['user', 'admin']).withMessage('Role deve ser user ou admin')
+  body('role').optional().isIn(['user', 'admin', 'colaborador']).withMessage('Role deve ser user, admin ou colaborador')
 ], handleValidationErrors, async (req, res) => {
   try {
     const userId = req.params.id;
@@ -961,7 +982,7 @@ router.put('/users/:id', requireAdmin, [
 });
 
 // DELETE /api/admin/users/:id - Deletar usuário (soft delete)
-router.delete('/users/:id', requireAdmin, [
+router.delete('/users/:id', requireFullAdminAccess, [
   param('id').notEmpty().withMessage('ID do usuário é obrigatório')
 ], handleValidationErrors, async (req, res) => {
   try {
@@ -1008,7 +1029,7 @@ router.delete('/users/:id', requireAdmin, [
 });
 
 // PUT /api/admin/users/:id/deactivate - Inativar usuário
-router.put('/users/:id/deactivate', requireAdmin, [
+router.put('/users/:id/deactivate', requireFullAdminAccess, [
   param('id').notEmpty().withMessage('ID do usuário é obrigatório')
 ], handleValidationErrors, async (req, res) => {
   try {
@@ -1055,7 +1076,7 @@ router.put('/users/:id/deactivate', requireAdmin, [
 });
 
 // PUT /api/admin/users/:id/activate - Ativar usuário
-router.put('/users/:id/activate', requireAdmin, [
+router.put('/users/:id/activate', requireFullAdminAccess, [
   param('id').notEmpty().withMessage('ID do usuário é obrigatório')
 ], handleValidationErrors, async (req, res) => {
   try {
@@ -1094,7 +1115,7 @@ router.put('/users/:id/activate', requireAdmin, [
 });
 
 // PUT /api/admin/users/:id/promote - Promover usuário para admin
-router.put('/users/:id/promote', requireAdmin, [
+router.put('/users/:id/promote', requireFullAdminAccess, [
   param('id').notEmpty().withMessage('ID do usuário é obrigatório')
 ], handleValidationErrors, async (req, res) => {
   try {
@@ -1133,7 +1154,7 @@ router.put('/users/:id/promote', requireAdmin, [
 });
 
 // PUT /api/admin/users/:id/demote - Rebaixar admin para usuário comum
-router.put('/users/:id/demote', requireAdmin, [
+router.put('/users/:id/demote', requireFullAdminAccess, [
   param('id').notEmpty().withMessage('ID do usuário é obrigatório')
 ], handleValidationErrors, async (req, res) => {
   try {
@@ -1172,6 +1193,105 @@ router.put('/users/:id/demote', requireAdmin, [
     });
   } catch (error) {
     console.error('Erro ao rebaixar usuário:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
+});
+
+// PUT /api/admin/users/:id/promote-collaborator - Promover usuário para colaborador
+router.put('/users/:id/promote-collaborator', requireFullAdminAccess, [
+  param('id').notEmpty().withMessage('ID do usuário é obrigatório')
+], handleValidationErrors, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'Usuário não encontrado'
+      });
+    }
+    
+    if (user.role === 'colaborador') {
+      return res.status(400).json({
+        success: false,
+        error: 'Usuário já é colaborador'
+      });
+    }
+    
+    if (user.role === 'admin') {
+      return res.status(400).json({
+        success: false,
+        error: 'Administrador não pode ser rebaixado para colaborador'
+      });
+    }
+    
+    const updatedUser = await User.update(userId, { role: 'colaborador' });
+    
+    res.json({
+      success: true,
+      message: 'Usuário promovido para colaborador com sucesso',
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error('Erro ao promover usuário para colaborador:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
+});
+
+// PUT /api/admin/users/:id/demote-collaborator - Rebaixar colaborador para usuário comum
+router.put('/users/:id/demote-collaborator', requireFullAdminAccess, [
+  param('id').notEmpty().withMessage('ID do usuário é obrigatório')
+], handleValidationErrors, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'Usuário não encontrado'
+      });
+    }
+    
+    if (user.role === 'user') {
+      return res.status(400).json({
+        success: false,
+        error: 'Usuário já é um usuário comum'
+      });
+    }
+    
+    if (user.role === 'admin') {
+      return res.status(400).json({
+        success: false,
+        error: 'Administrador não pode ser rebaixado através desta rota'
+      });
+    }
+    
+    if (user.role !== 'colaborador') {
+      return res.status(400).json({
+        success: false,
+        error: 'Usuário não é colaborador'
+      });
+    }
+    
+    const updatedUser = await User.update(userId, { role: 'user' });
+    
+    res.json({
+      success: true,
+      message: 'Colaborador rebaixado para usuário comum com sucesso',
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error('Erro ao rebaixar colaborador:', error);
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
@@ -1236,7 +1356,7 @@ router.put('/categories/:id', requireAdmin, [
 // ===== ROTAS DE CUPONS =====
 
 // POST /api/admin/coupons - Criar cupom (apenas admin)
-router.post('/coupons', requireAdmin, [
+router.post('/coupons', requireFullAdminAccess, [
   body('userId').notEmpty().withMessage('ID do usuário é obrigatório'),
   body('discountPercentage').isFloat({ min: 1, max: 100 }).withMessage('Porcentagem de desconto deve ser entre 1 e 100'),
   body('expiresAt').optional().isISO8601().withMessage('Data de expiração deve ser uma data válida')
@@ -1288,7 +1408,7 @@ router.post('/coupons', requireAdmin, [
 // ===== ROTAS DE RELATÓRIOS =====
 
 // GET /api/admin/dashboard - Obter dados do dashboard
-router.get('/dashboard', requireAdmin, async (req, res) => {
+router.get('/dashboard', requireFullAdminAccess, async (req, res) => {
   try {
     // Buscar estatísticas do banco de dados
     const [productStats, userStats, orderStats, salesByCategory, bestSellers, conversionMetrics] = await Promise.all([

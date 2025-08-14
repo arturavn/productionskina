@@ -19,8 +19,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin 
         return;
       }
 
-      // Se requer admin mas o usuário não é admin, redireciona para home
-      if (requireAdmin && user?.role !== 'admin') {
+      // Se requer admin mas o usuário não é admin nem colaborador, redireciona para home
+      if (requireAdmin && user?.role !== 'admin' && user?.role !== 'colaborador') {
         navigate('/', { replace: true });
         return;
       }
@@ -41,7 +41,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin 
 
   // Se não está autenticado ou não tem permissão, não renderiza nada
   // (o useEffect já fez o redirecionamento)
-  if (!isAuthenticated || (requireAdmin && user?.role !== 'admin')) {
+  if (!isAuthenticated || (requireAdmin && user?.role !== 'admin' && user?.role !== 'colaborador')) {
     return null;
   }
 

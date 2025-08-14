@@ -20,7 +20,7 @@ const sendPasswordResetEmail = async (email, resetToken, userName) => {
     
     // Usar apenas a primeira URL se houver múltiplas URLs separadas por vírgula
     const frontendUrl = process.env.FRONTEND_URL.split(',')[0].trim();
-    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+    const resetUrl = `https://skinaecopecas.com.br/reset-password?token=${resetToken}`;
     
     const mailOptions = {
       from: process.env.EMAIL_FROM,
@@ -127,7 +127,7 @@ const sendPasswordResetEmail = async (email, resetToken, userName) => {
                           📞 WhatsApp: (61) 99850-1771
                         </p>
                         <p style="color: #10b981; font-size: 14px; font-weight: bold; margin: 5px 0;">
-                          ✉️ contato@skinaecopecas.com
+                          ✉️ contato@skinaecopecas.com.br
                         </p>
                       </div>
                     </td>
@@ -206,7 +206,7 @@ const sendOrderConfirmationEmail = async (orderData) => {
     const transporter = createTransporter();
     
     const frontendUrl = process.env.FRONTEND_URL.split(',')[0].trim();
-    const orderUrl = `${frontendUrl}/orders/${orderData.id}`;
+    const orderUrl = `https://skinaecopecas.com.br/pedidos`;
     
     const mailOptions = {
       from: process.env.EMAIL_FROM,
@@ -232,7 +232,7 @@ const sendOrderStatusUpdateEmail = async (orderData, newStatus, oldStatus) => {
     const transporter = createTransporter();
     
     const frontendUrl = process.env.FRONTEND_URL.split(',')[0].trim();
-    const orderUrl = `${frontendUrl}/orders/${orderData.id}`;
+    const orderUrl = `https://skinaecopecas.com.br/pedidos`;
     
     const statusMessages = {
       pending: 'Aguardando Confirmação',
@@ -414,7 +414,7 @@ const generateOrderEmailTemplate = (orderData, status, orderUrl, oldStatus = nul
                       📞 WhatsApp: (61) 99850-1771
                     </p>
                     <p style="color: #10b981; font-size: 14px; font-weight: bold; margin: 5px 0;">
-                      ✉️ contato@skinaecopecas.com
+                      ✉️ contato@skinaecopecas.com.br
                     </p>
                   </div>
                 </td>
@@ -483,7 +483,7 @@ const generateOrderEmailText = (orderData, status, orderUrl, oldStatus = null) =
     - Total: R$ ${orderData.total?.toFixed(2) || '0.00'}
     
     Para ver mais detalhes do seu pedido, acesse:
-    ${orderUrl}
+    https://skinaecopecas.com.br/pedidos
     
     Precisa de ajuda?
     WhatsApp: (61) 99850-1771
@@ -500,7 +500,8 @@ const sendNewOrderNotificationToManagement = async (orderData) => {
     const transporter = createTransporter();
     
     const frontendUrl = process.env.FRONTEND_URL.split(',')[0].trim();
-    const adminOrderUrl = `${frontendUrl}/admin/orders/${orderData.id}`;
+    const adminOrderUrl = `https://skinaecopecas.com.br/admin/orders/${orderData.id}`;
+    const adminPanelUrl = `https://skinaecopecas.com.br/admin`;
     
     const itemsHtml = orderData.items?.map(item => `
       <tr>
@@ -594,7 +595,7 @@ const sendNewOrderNotificationToManagement = async (orderData) => {
                       
                       <!-- Botão de Ação -->
                       <div style="text-align: center; margin: 30px 0;">
-                        <a href="${adminOrderUrl}" 
+                        <a href="${adminPanelUrl}" 
                            style="display: inline-block; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); 
                                   color: #ffffff; padding: 16px 32px; text-decoration: none; 
                                   border-radius: 8px; font-weight: bold; font-size: 16px;
@@ -660,7 +661,7 @@ const sendNewOrderNotificationToManagement = async (orderData) => {
         - Total: R$ ${orderData.total?.toFixed(2) || '0.00'}
         
         Acesse o painel administrativo para processar este pedido:
-        ${adminOrderUrl}
+        ${adminPanelUrl}
         
         AÇÃO NECESSÁRIA:
         • Verificar o pagamento

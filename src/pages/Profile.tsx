@@ -58,7 +58,7 @@ const Profile = () => {
     );
   }
 
-  const isAdmin = user.role === 'admin';
+  const isAdmin = user.role === 'admin' || user.role === 'colaborador';
 
   const handleSaveAccount = () => {
     updateProfileMutation.mutate({

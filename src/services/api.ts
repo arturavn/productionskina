@@ -873,6 +873,34 @@ class ApiService {
     });
   }
 
+  async promoteToCollaborator(userId: string): Promise<{
+    success: boolean;
+    message: string;
+    user: User;
+  }> {
+    return this.request<{
+      success: boolean;
+      message: string;
+      user: User;
+    }>(`/admin/users/${userId}/promote-collaborator`, {
+      method: 'PUT',
+    });
+  }
+
+  async demoteFromCollaborator(userId: string): Promise<{
+    success: boolean;
+    message: string;
+    user: User;
+  }> {
+    return this.request<{
+      success: boolean;
+      message: string;
+      user: User;
+    }>(`/admin/users/${userId}/demote-collaborator`, {
+      method: 'PUT',
+    });
+  }
+
   async getAdminOrders(params?: {
     page?: number;
     limit?: number;
