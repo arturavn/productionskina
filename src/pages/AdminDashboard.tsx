@@ -2163,7 +2163,7 @@ const AdminDashboard = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {categoriesData?.data?.categories?.map((category) => (
+                      {categoriesData?.categories?.map((category) => (
                         <TableRow key={category.id}>
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-3">
@@ -2597,19 +2597,19 @@ const AdminDashboard = () => {
                   ) : dashboardData?.conversionMetrics ? (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-center p-3 bg-blue-50 rounded-lg">
-                        <p className="text-2xl font-bold text-blue-600">{dashboardData.conversionMetrics.customer_conversion_rate}%</p>
+                        <p className="text-2xl font-bold text-blue-600">{(Number(dashboardData.conversionMetrics.customer_conversion_rate) || 0).toFixed(1)}%</p>
                         <p className="text-xs text-muted-foreground">Taxa de Conversão</p>
                       </div>
                       <div className="text-center p-3 bg-green-50 rounded-lg">
-                        <p className="text-2xl font-bold text-green-600">{dashboardData.conversionMetrics.avg_orders_per_customer.toString()}</p>
+                        <p className="text-2xl font-bold text-green-600">{(Number(dashboardData.conversionMetrics.avg_orders_per_customer) || 0).toFixed(1)}</p>
                         <p className="text-xs text-muted-foreground">Pedidos por Cliente</p>
                       </div>
                       <div className="text-center p-3 bg-purple-50 rounded-lg">
-                        <p className="text-2xl font-bold text-purple-600">R$ {(dashboardData.conversionMetrics.avg_order_value || 0).toFixed(2)}</p>
+                        <p className="text-2xl font-bold text-purple-600">R$ {(Number(dashboardData.conversionMetrics.avg_order_value) || 0).toFixed(2)}</p>
                         <p className="text-xs text-muted-foreground">Ticket Médio</p>
                       </div>
                       <div className="text-center p-3 bg-orange-50 rounded-lg">
-                        <p className="text-2xl font-bold text-orange-600">{dashboardData.conversionMetrics.unique_customers.toString()}</p>
+                        <p className="text-2xl font-bold text-orange-600">{Number(dashboardData.conversionMetrics.unique_customers) || 0}</p>
                         <p className="text-xs text-muted-foreground">Clientes Únicos</p>
                       </div>
                     </div>
