@@ -288,7 +288,7 @@ router.get('/status', requireAdmin, async (req, res) => {
     // Buscar última sincronização
     const lastSyncQuery = `
       SELECT created_at 
-      FROM mercado_livre_sync_jobs 
+      FROM sync_jobs 
       WHERE status = 'completed' 
       ORDER BY created_at DESC 
       LIMIT 1
@@ -391,7 +391,7 @@ router.get('/sync/jobs/:id', requireAdmin, async (req, res) => {
         completed_at,
         created_at,
         updated_at
-      FROM mercado_livre_sync_jobs 
+      FROM sync_jobs 
       WHERE id = ?
     `;
     
@@ -428,7 +428,7 @@ router.get('/sync/jobs', requireAdmin, async (req, res) => {
         started_at,
         completed_at,
         created_at
-      FROM mercado_livre_sync_jobs 
+      FROM sync_jobs 
       ORDER BY created_at DESC 
       LIMIT $1 OFFSET $2
     `;
@@ -487,7 +487,7 @@ router.get('/stats', requireAdmin, async (req, res) => {
         COUNT(CASE WHEN status = 'completed' THEN 1 END) as successful_syncs,
         COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_syncs,
         MAX(created_at) as last_sync
-      FROM mercado_livre_sync_jobs
+      FROM sync_jobs
       WHERE account_id = ?
     `, [account.id]);
     
