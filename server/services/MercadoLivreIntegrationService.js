@@ -206,7 +206,7 @@ class MercadoLivreIntegrationService {
   // Configurações de sincronização
   async getSyncConfig() {
     try {
-      const { rows } = await query('SELECT key, value FROM sync_config_ml');
+      const { rows } = await query('SELECT key, value FROM ml_sync_config');
       
       const config = {};
       rows.forEach(row => {
@@ -239,7 +239,7 @@ class MercadoLivreIntegrationService {
   async updateSyncConfig(key, value) {
     try {
       await query(`
-        INSERT INTO sync_config_ml (key, value) 
+        INSERT INTO ml_sync_config (key, value) 
         VALUES ($1, $2) 
         ON CONFLICT (key) DO UPDATE SET 
           value = $2, 
