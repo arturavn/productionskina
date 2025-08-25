@@ -73,10 +73,69 @@ async function runMigration() {
     
     logInfo('🔄 Executando migração...');
     
-    const commands = sqlContent
-      .split(';')
-      .map(cmd => cmd.trim())
-      .filter(cmd => cmd.length > 0 && !cmd.startsWith('--'));
+    // Função para dividir SQL respeitando blocos dollar-quoted
+    function splitSqlCommands(sql) {
+      const commands = [];
+      let currentCommand = '';
+      let inDollarQuote = false;
+      let dollarTag = '';
+      
+      const lines = sql.split('\n');
+      
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        
+        // Pular comentários
+        if (trimmedLine.startsWith('--') || trimmedLine === '') {
+          continue;
+        }
+        
+        // Detectar início de bloco dollar-quoted
+        const dollarMatch = line.match(/\$([^$]*)\$/);
+        if (dollarMatch && !inDollarQuote) {
+          inDollarQuote = true;
+          dollarTag = dollarMatch[0];
+          currentCommand += line + '\n';
+          continue;
+        }
+        
+        // Detectar fim de bloco dollar-quoted
+        if (inDollarQuote && line.includes(dollarTag)) {
+          currentCommand += line + '\n';
+          if (line.trim().endsWith(';')) {
+            commands.push(currentCommand.trim());
+            currentCommand = '';
+            inDollarQuote = false;
+            dollarTag = '';
+          }
+          continue;
+        }
+        
+        // Se estamos dentro de um bloco dollar-quoted, adicionar linha
+        if (inDollarQuote) {
+          currentCommand += line + '\n';
+          continue;
+        }
+        
+        // Processar linha normal
+        currentCommand += line + '\n';
+        
+        // Se a linha termina com ; e não estamos em bloco dollar-quoted
+        if (line.trim().endsWith(';')) {
+          commands.push(currentCommand.trim());
+          currentCommand = '';
+        }
+      }
+      
+      // Adicionar último comando se houver
+      if (currentCommand.trim()) {
+        commands.push(currentCommand.trim());
+      }
+      
+      return commands.filter(cmd => cmd.length > 0);
+    }
+    
+    const commands = splitSqlCommands(sqlContent);
     
     logInfo(`Executando ${commands.length} comandos SQL...`);
     
