@@ -1355,3 +1355,19 @@ export const useTestShippingService = () => {
     retry: false,
   });
 };
+
+// === HOOKS PARA MERCADO LIVRE ===
+export const useMercadoLivreStatusSync = () => {
+  return useQuery({
+    queryKey: ['mercado-livre-status'],
+    queryFn: async () => {
+      const response = await fetch('/api/mercado_livre/status');
+      if (!response.ok) {
+        throw new Error('Erro ao buscar status do Mercado Livre');
+      }
+      return response.json();
+    },
+    refetchInterval: 30000, // Atualiza a cada 30 segundos
+    staleTime: 10000, // 10 segundos
+  });
+};

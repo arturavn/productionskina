@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useProducts, useAdminProducts, useLogout, useAdminDashboard, useAdminUsers, useAdminOrders, useUpdateOrderStatus, useDeleteOrder, useCreateProduct, useUpdateProduct, useDeleteProduct, useProductImages, useUploadProductImages, useSetPrimaryImage, useDeleteImage, useUpdateUser, useDeleteUser, useDeactivateUser, useActivateUser, usePromoteUser, useDemoteUser, usePromoteToCollaborator, useDemoteFromCollaborator, useCategories, useResetAllViewCounts, useAdminUserById, useAdminSlides, useCreateSlide, useUpdateSlide, useDeleteSlide, useReorderSlides, useAuth } from '@/hooks/useApi';
+import { useProducts, useAdminProducts, useLogout, useAdminDashboard, useAdminUsers, useAdminOrders, useUpdateOrderStatus, useDeleteOrder, useCreateProduct, useUpdateProduct, useDeleteProduct, useProductImages, useUploadProductImages, useSetPrimaryImage, useDeleteImage, useUpdateUser, useDeleteUser, useDeactivateUser, useActivateUser, usePromoteUser, useDemoteUser, usePromoteToCollaborator, useDemoteFromCollaborator, useCategories, useResetAllViewCounts, useAdminUserById, useAdminSlides, useCreateSlide, useUpdateSlide, useDeleteSlide, useReorderSlides, useAuth, useMercadoLivreStatusSync } from '@/hooks/useApi';
 import { api } from '@/services/api';
 import AdminOrderDetailsModal from '@/components/AdminOrderDetailsModal';
 import ImageManager from '@/components/ImageManager';
@@ -39,7 +39,10 @@ import {
   UserCheck,
   RotateCcw,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  RefreshCw,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 
 // Type definitions
@@ -185,6 +188,81 @@ interface OrderData {
   };
 }
 
+// Componentes auxiliares para Mercado Livre
+const MercadoLivreStatusBadge = ({ mlStatus, isLoading, error }: {
+  mlStatus: { connected?: boolean } | null;
+  isLoading: boolean;
+  error: unknown;
+}) => {
+  if (isLoading) {
+    return (
+      <Badge variant="outline" className="text-gray-600 border-gray-600">
+        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+        Carregando...
+      </Badge>
+    );
+  }
+  
+  if (error || !mlStatus) {
+    return (
+      <Badge variant="outline" className="text-red-600 border-red-600">
+        <XCircle className="w-3 h-3 mr-1" />
+        Erro
+      </Badge>
+    );
+  }
+  
+  if (mlStatus.connected) {
+    return (
+      <Badge variant="outline" className="text-green-600 border-green-600 bg-green-50">
+        <CheckCircle className="w-3 h-3 mr-1" />
+        Conectado
+      </Badge>
+    );
+  }
+  
+  return (
+    <Badge variant="outline" className="text-red-600 border-red-600 bg-red-50">
+      <XCircle className="w-3 h-3 mr-1" />
+      Não conectado
+    </Badge>
+  );
+};
+
+const MercadoLivreLastSync = ({ mlStatus }: { mlStatus: { lastSync?: { timestamp?: string } } | null }) => {
+  if (mlStatus?.lastSync?.timestamp) {
+    try {
+      const date = new Date(mlStatus.lastSync.timestamp);
+      
+      // Verificar se a data é válida
+      if (isNaN(date.getTime())) {
+        console.error('Data inválida recebida:', mlStatus.lastSync.timestamp);
+        return 'Data inválida';
+      }
+      
+      // Formatar data e hora no formato brasileiro
+      return date.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error('Erro ao formatar data:', error);
+      return 'Data inválida';
+    }
+  }
+  return 'Nunca';
+};
+
+const MercadoLivreProductCount = ({ mlStatus }: { mlStatus: { productStats?: { total?: number } } | null }) => {
+  if (mlStatus?.productStats?.total !== undefined) {
+    return mlStatus.productStats.total;
+  }
+  return 0;
+};
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -290,6 +368,9 @@ const AdminDashboard = () => {
   const updateSlideMutation = useUpdateSlide();
   const deleteSlideMutation = useDeleteSlide();
   const reorderSlidesMutation = useReorderSlides();
+  
+  // Hook para status do Mercado Livre
+  const mlStatus = useMercadoLivreStatusSync();
   
   // Estados para o formulário de produto
   const [productForm, setProductForm] = useState({
@@ -1301,6 +1382,53 @@ const AdminDashboard = () => {
                       </p>
                     </>
                   )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Card do Mercado Livre */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <Card className="col-span-1">
+                <CardHeader className="flex flex-row items-center space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <img 
+                      src="/images/mercado-livre.png" 
+                      alt="Mercado Livre" 
+                      className="w-12 h-10 object-contain"
+                    />
+                    Integração Mercado Livre
+                  </CardTitle>
+                  
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Status:</span>
+                    <MercadoLivreStatusBadge 
+                      mlStatus={mlStatus?.data} 
+                      isLoading={mlStatus?.isLoading} 
+                      error={mlStatus?.error} 
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Última sincronização:</span>
+                    <span className="text-sm text-muted-foreground">
+                      <MercadoLivreLastSync mlStatus={mlStatus?.data} />
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Quantidade de produtos da Conexão:</span>
+                    <span className="text-sm text-muted-foreground">
+                      <MercadoLivreProductCount mlStatus={mlStatus?.data} />
+                    </span>
+                  </div>
+                  
+                  <Button 
+                    className="w-full bg-skina-green hover:bg-skina-green/90 text-white"
+                    onClick={() => navigate('/admin/mercado-livre')}
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    Gerenciar Integração
+                  </Button>
                 </CardContent>
               </Card>
             </div>

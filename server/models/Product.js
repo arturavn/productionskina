@@ -26,6 +26,9 @@ class Product {
     this.featured = data.is_featured !== undefined ? data.is_featured : (data.featured !== undefined ? data.featured : false);
     this.viewCount = data.view_count || data.viewCount || 0;
     this.active = data.active;
+    this.ml_id = data.ml_id;
+    this.ml_seller_id = data.ml_seller_id;
+    this.ml_family_id = data.ml_family_id;
     this.createdAt = data.created_at || data.createdAt;
     this.updatedAt = data.updated_at || data.updatedAt;
   }
@@ -754,6 +757,405 @@ class Product {
     };
   }
 
+  static async createOrUpdateFromMercadoLivre(mlProduct) {
+    try {
+      console.log('🔄 Iniciando createOrUpdateFromMercadoLivre para ML ID:', mlProduct.ml_id);
+      
+      // Verificar se produto já existe pelo ID do Mercado Livre
+      const existingProduct = await query(
+        'SELECT * FROM products WHERE ml_id = $1',
+        [mlProduct.ml_id]
+      );
+
+      // Se já existe, apenas atualizar (não criar duplicado)
+      if (existingProduct.rows.length > 0) {
+        console.log(`ℹ️ Produto ${mlProduct.ml_id} já existe, atualizando...`);
+        
+        // Extrair peso e dimensões dos atributos do ML
+        const weightData = this.extractWeightAndDimensions(mlProduct.attributes || []);
+        
+        // Extrair brand separadamente das especificações
+        let brand = null;
+        let specifications = null;
+        
+        if (mlProduct.attributes && Array.isArray(mlProduct.attributes)) {
+          const specs = {};
+          
+          console.log('🔍 ANALISANDO ATRIBUTOS PARA ATUALIZAÇÃO:');
+          mlProduct.attributes.forEach((attr, index) => {
+            if (attr.name && attr.value_name) {
+              console.log(`  ${index + 1}. ${attr.name} (${attr.id}) = ${attr.value_name}`);
+              
+              // Detectar brand APENAS do atributo "Marca"
+              const attrName = attr.name.toLowerCase();
+              const attrId = attr.id?.toLowerCase() || '';
+              
+              if (attrName === 'marca' || attrId === 'brand') {
+                // Extrair o valor para o campo brand
+                brand = attr.value_name;
+                console.log('✅ BRAND detectado para atualização:', { name: attr.name, value: attr.value_name });
+                
+                // IMPORTANTE: Manter "Marca" nas especificações também
+                specs[attr.name] = attr.value_name;
+              } else {
+                // Incluir todos os outros atributos nas especificações
+                specs[attr.name] = attr.value_name;
+              }
+            }
+          });
+          
+          specifications = JSON.stringify(specs);
+          if (brand) {
+            console.log('✅ Brand válido para atualização:', brand);
+          } else {
+            console.log('⚠️ Nenhum brand válido encontrado para atualização');
+          }
+          console.log('✅ Especificações para atualização (INCLUINDO marca):', specifications);
+        }
+        
+        // Atualizar produto existente com campos padrão + peso e dimensões
+        await query(`
+          UPDATE products 
+          SET 
+            name = COALESCE($1, name),
+            description = COALESCE($2, description),
+            original_price = COALESCE($3, original_price),
+            discount_price = COALESCE($4, discount_price),
+            image_url = COALESCE($5, image_url),
+            stock_quantity = COALESCE($6, stock_quantity),
+            specifications = COALESCE($7, specifications),
+            brand = COALESCE($8, brand),
+            weight = COALESCE($9, weight),
+            width_cm = COALESCE($10, width_cm),
+            height_cm = COALESCE($11, height_cm),
+            length_cm = COALESCE($12, length_cm),
+            weight_kg = COALESCE($13, weight_kg),
+            updated_at = NOW()
+          WHERE id = $14
+        `, [
+          mlProduct.title || null,
+          mlProduct.description || null,
+          mlProduct.price || null,
+          mlProduct.price || null,
+          mlProduct.first_image_url || null,
+          mlProduct.available_quantity || null,
+          specifications,
+          brand,
+          weightData.weight || null,
+          weightData.width_cm || null,
+          weightData.height_cm || null,
+          weightData.length_cm || null,
+          weightData.weight_kg || null,
+          existingProduct.rows[0].id
+        ]);
+        
+        // Sincronizar imagens do produto
+        await this.syncProductImages(mlProduct.ml_id, mlProduct.pictures || []);
+        
+        console.log('✅ Produto atualizado com sucesso');
+        return existingProduct.rows[0];
+      }
+      
+      // Se não existe, criar novo produto
+      console.log(`🆕 Criando novo produto para ML ID: ${mlProduct.ml_id}`);
+      
+      // Para importação, usar campos padrão SEM depender da tabela de mapeamentos
+      const productData = {};
+      
+      // Mapear campos padrão do ML para campos locais
+      console.log('🔍 Campos recebidos do ML:', Object.keys(mlProduct));
+      
+      // Mapear nome/título - SEMPRE criar com nome válido
+      if (mlProduct.title && mlProduct.title.trim() !== '') {
+        productData.name = mlProduct.title;
+        console.log('✅ Nome mapeado de "title":', productData.name);
+      } else if (mlProduct.name && mlProduct.name.trim() !== '') {
+        productData.name = mlProduct.name;
+        console.log('✅ Nome mapeado de "name":', productData.name);
+      } else {
+        productData.name = `Produto ML ${mlProduct.ml_id}`;
+        console.log('⚠️ Usando nome de fallback:', productData.name);
+      }
+      
+      // Mapear descrição
+      if (mlProduct.description && mlProduct.description.trim() !== '') {
+        productData.description = mlProduct.description;
+        console.log('✅ Descrição mapeada:', productData.description);
+      } else {
+        productData.description = `Produto importado do Mercado Livre (ID: ${mlProduct.ml_id})`;
+        console.log('⚠️ Usando descrição de fallback:', productData.description);
+      }
+      
+      // Mapear preços - SEMPRE criar com preço válido
+      if (mlProduct.price && parseFloat(mlProduct.price) > 0) {
+        productData.originalPrice = parseFloat(mlProduct.price);
+        productData.discountPrice = parseFloat(mlProduct.price);
+        console.log('✅ Preços mapeados:', { original: productData.originalPrice, discount: productData.discountPrice });
+      } else {
+        productData.originalPrice = 0.01; // Preço mínimo para evitar erro
+        productData.discountPrice = 0.01;
+        console.log('⚠️ Usando preço de fallback: 0.01');
+      }
+      
+      // Mapear estoque - SEMPRE criar com estoque válido
+      if (mlProduct.available_quantity !== undefined && mlProduct.available_quantity !== null) {
+        productData.stockQuantity = parseInt(mlProduct.available_quantity) || 0;
+        console.log('✅ Estoque mapeado:', productData.stockQuantity);
+      } else {
+        productData.stockQuantity = 1; // Estoque mínimo para evitar erro
+        console.log('⚠️ Usando estoque de fallback: 1');
+      }
+      
+      // Mapear imagem - usar URL já processada
+      if (mlProduct.first_image_url) {
+        productData.imageUrl = mlProduct.first_image_url;
+        console.log('✅ Imagem mapeada de "first_image_url":', productData.imageUrl);
+      } else {
+        productData.imageUrl = null;
+        console.log('⚠️ Nenhuma imagem fornecida');
+      }
+      
+      // Mapear especificações dos atributos
+      if (mlProduct.attributes && Array.isArray(mlProduct.attributes) && mlProduct.attributes.length > 0) {
+        // Converter atributos para especificações
+        const specs = {};
+        let brand = null;
+        
+        console.log('🔍 ANALISANDO ATRIBUTOS NO MODELO:');
+        mlProduct.attributes.forEach((attr, index) => {
+          if (attr.name && attr.value_name) {
+            console.log(`  ${index + 1}. ${attr.name} (${attr.id}) = ${attr.value_name}`);
+            
+            // Detectar brand APENAS do atributo "Marca"
+            const attrName = attr.name.toLowerCase();
+            const attrId = attr.id?.toLowerCase() || '';
+            
+            if (attrName === 'marca' || attrId === 'brand') {
+              // Extrair o valor para o campo brand
+              brand = attr.value_name;
+              console.log('✅ BRAND detectado no modelo:', { name: attr.name, value: attr.value_name });
+              
+              // IMPORTANTE: Manter "Marca" nas especificações também
+              specs[attr.name] = attr.value_name;
+            } else {
+              // Incluir todos os outros atributos nas especificações
+              specs[attr.name] = attr.value_name;
+            }
+          }
+        });
+        
+        productData.specifications = JSON.stringify(specs);
+        if (brand) {
+          productData.brand = brand;
+          console.log('✅ Brand mapeado para campo separado:', brand);
+        } else {
+          console.log('⚠️ Nenhum brand válido encontrado nos atributos');
+        }
+        console.log('✅ Especificações mapeadas (INCLUINDO marca):', productData.specifications);
+      }
+      
+      // Mapear brand diretamente se fornecido
+      if (mlProduct.brand && mlProduct.brand.trim() !== '') {
+        productData.brand = mlProduct.brand;
+        console.log('🏷️ Brand mapeado diretamente:', productData.brand);
+      }
+      
+      // Extrair peso e dimensões dos atributos
+      const weightData = this.extractWeightAndDimensions(mlProduct.attributes || []);
+      if (weightData.weight) productData.weight = weightData.weight;
+      if (weightData.width_cm) productData.widthCm = weightData.width_cm;
+      if (weightData.height_cm) productData.heightCm = weightData.height_cm;
+      if (weightData.length_cm) productData.lengthCm = weightData.length_cm;
+      if (weightData.weight_kg) productData.weightKg = weightData.weight_kg;
+      
+      console.log('📏 Peso e dimensões extraídos:', weightData);
+      
+      // Adicionar family_id do ML
+      if (mlProduct.category_id) {
+        productData.ml_family_id = mlProduct.category_id;
+        console.log('✅ Family ID mapeado:', productData.ml_family_id);
+      }
+      
+      console.log('📝 Dados finais do produto para criação:', productData);
+      console.log('🖼️ ImageUrl final:', productData.imageUrl);
+      console.log('📝 Description final:', productData.description);
+      
+      // Adicionar campos obrigatórios
+      productData.ml_id = mlProduct.ml_id;
+      productData.ml_seller_id = mlProduct.seller_id;
+      
+      // Gerar SKU único (sem prefixo ML-)
+      productData.sku = await this.generateUniqueSku(mlProduct.ml_id);
+      productData.active = true;
+      
+      console.log('🔑 SKU gerado:', productData.sku);
+      console.log('🔄 Chamando método create...');
+
+      const result = await this.create(productData);
+      
+      // Sincronizar imagens do produto após criação
+      await this.syncProductImages(mlProduct.ml_id, mlProduct.pictures || []);
+      
+      console.log('✅ Produto criado com sucesso:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Erro em createOrUpdateFromMercadoLivre:', error);
+      throw error;
+    }
+  }
+
+  // Método auxiliar para extrair peso e dimensões dos atributos do ML
+  static extractWeightAndDimensions(attributes) {
+    const result = {
+      weight: null,
+      width_cm: null,
+      height_cm: null,
+      length_cm: null,
+      weight_kg: null
+    };
+
+    if (!Array.isArray(attributes)) return result;
+
+    attributes.forEach(attr => {
+      if (!attr.name || !attr.value_name) return;
+
+      const attrName = attr.name.toLowerCase();
+      const attrValue = attr.value_name.toLowerCase();
+
+      // Peso
+      if (attrName.includes('peso') || attrName.includes('weight')) {
+        const weightMatch = attrValue.match(/(\d+(?:[.,]\d+)?)\s*(kg|g|gr|gramas?|quilos?)/i);
+        if (weightMatch) {
+          const value = parseFloat(weightMatch[1].replace(',', '.'));
+          const unit = weightMatch[2].toLowerCase();
+          
+          if (unit === 'kg' || unit === 'quilos' || unit === 'quilo') {
+            result.weight_kg = value;
+            result.weight = value * 1000; // Converter para gramas
+          } else if (unit === 'g' || unit === 'gr' || unit === 'gramas' || unit === 'grama') {
+            result.weight = value;
+            result.weight_kg = value / 1000; // Converter para kg
+          }
+        }
+      }
+
+      // Dimensões
+      if (attrName.includes('largura') || attrName.includes('width')) {
+        const widthMatch = attrValue.match(/(\d+(?:[.,]\d+)?)\s*(cm|mm|m)/i);
+        if (widthMatch) {
+          const value = parseFloat(widthMatch[1].replace(',', '.'));
+          const unit = widthMatch[2].toLowerCase();
+          
+          if (unit === 'cm') {
+            result.width_cm = value;
+          } else if (unit === 'mm') {
+            result.width_cm = value / 10;
+          } else if (unit === 'm') {
+            result.width_cm = value * 100;
+          }
+        }
+      }
+
+      if (attrName.includes('altura') || attrName.includes('height')) {
+        const heightMatch = attrValue.match(/(\d+(?:[.,]\d+)?)\s*(cm|mm|m)/i);
+        if (heightMatch) {
+          const value = parseFloat(heightMatch[1].replace(',', '.'));
+          const unit = heightMatch[2].toLowerCase();
+          
+          if (unit === 'cm') {
+            result.height_cm = value;
+          } else if (unit === 'mm') {
+            result.height_cm = value / 10;
+          } else if (unit === 'm') {
+            result.height_cm = value * 100;
+          }
+        }
+      }
+
+      if (attrName.includes('comprimento') || attrName.includes('length') || attrName.includes('profundidade')) {
+        const lengthMatch = attrValue.match(/(\d+(?:[.,]\d+)?)\s*(cm|mm|m)/i);
+        if (lengthMatch) {
+          const value = parseFloat(lengthMatch[1].replace(',', '.'));
+          const unit = lengthMatch[2].toLowerCase();
+          
+          if (unit === 'cm') {
+            result.length_cm = value;
+          } else if (unit === 'mm') {
+            result.length_cm = value / 10;
+          } else if (unit === 'm') {
+            result.length_cm = value * 100;
+          }
+        }
+      }
+    });
+
+    return result;
+  }
+
+  // Método auxiliar para sincronizar imagens do produto
+  static async syncProductImages(mlId, pictures) {
+    try {
+      console.log(`🖼️ Sincronizando imagens para produto ML ID: ${mlId}`);
+      console.log(`📊 Dados recebidos:`, {
+        mlId,
+        picturesType: typeof pictures,
+        picturesIsArray: Array.isArray(pictures),
+        picturesLength: pictures?.length || 0,
+        pictures: pictures
+      });
+      
+      if (!mlId) {
+        console.log('❌ ML ID não fornecido para sincronização de imagens');
+        return;
+      }
+      
+      // Remover imagens antigas
+      const deleteResult = await query('DELETE FROM product_images_ml WHERE ml_id = $1', [mlId]);
+      console.log(`🗑️ Imagens antigas removidas: ${deleteResult.rowCount} linhas afetadas`);
+      
+      // Inserir novas imagens
+      if (pictures && Array.isArray(pictures) && pictures.length > 0) {
+        console.log(`📸 Processando ${pictures.length} imagens...`);
+        
+        for (let i = 0; i < pictures.length; i++) {
+          const picture = pictures[i];
+          console.log(`🖼️ Processando imagem ${i + 1}:`, picture);
+          
+          const imageUrl = picture.url || picture.secure_url;
+          
+          if (imageUrl) {
+            try {
+              const insertResult = await query(
+                'INSERT INTO product_images_ml (ml_id, image_url, position) VALUES ($1, $2, $3)',
+                [mlId, imageUrl, i]
+              );
+              console.log(`✅ Imagem ${i + 1} salva com sucesso:`, {
+                url: imageUrl,
+                position: i,
+                rowCount: insertResult.rowCount
+              });
+            } catch (insertError) {
+              console.error(`❌ Erro ao salvar imagem ${i + 1}:`, insertError);
+            }
+          } else {
+            console.log(`⚠️ Imagem ${i + 1} sem URL válida:`, picture);
+          }
+        }
+        
+        // Verificar se as imagens foram salvas
+        const verifyResult = await query('SELECT COUNT(*) as count FROM product_images_ml WHERE ml_id = $1', [mlId]);
+        console.log(`🔍 Verificação: ${verifyResult.rows[0].count} imagens salvas na tabela para ML ID ${mlId}`);
+        
+      } else {
+        console.log('⚠️ Nenhuma imagem para sincronizar ou formato inválido');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao sincronizar imagens:', error);
+      console.error('❌ Stack trace:', error.stack);
+      // Não interromper o fluxo principal por erro de imagem
+    }
+  }
+
   // Converter para JSON (para APIs)
   toJSON() {
     const json = {
@@ -776,6 +1178,9 @@ class Product {
       viewCount: this.viewCount,
       featured: this.featured,
       active: this.active,
+      ml_id: this.ml_id,
+      ml_seller_id: this.ml_seller_id,
+      ml_family_id: this.ml_family_id,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
     };
