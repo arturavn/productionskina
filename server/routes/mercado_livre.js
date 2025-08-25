@@ -101,7 +101,7 @@ router.post('/auth', requireAdmin, async (req, res) => {
     const redirectUri = `${baseUrl}/api/mercado_livre/callback`;
     const state = `${req.user.userId}_${Date.now()}`;
     
-    const authUrl = `https://auth.mercadolibre.com.ar/authorization?response_type=code&client_id=${process.env.ML_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+    const authUrl = `https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=${process.env.ML_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
     
     console.log('🔗 URL de autorização gerada:', authUrl);
     
