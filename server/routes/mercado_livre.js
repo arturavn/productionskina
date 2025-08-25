@@ -279,7 +279,7 @@ router.get('/status', requireAdmin, async (req, res) => {
         COUNT(*) as total_products,
         COUNT(CASE WHEN ml_id IS NOT NULL THEN 1 END) as synced_products
       FROM products 
-      WHERE active = 1
+      WHERE active = true
     `;
     
     const statsResult = await query(statsQuery);
@@ -476,7 +476,7 @@ router.get('/stats', requireAdmin, async (req, res) => {
       SELECT 
         COUNT(*) as total_products,
         COUNT(CASE WHEN ml_id IS NOT NULL THEN 1 END) as synced_products,
-        COUNT(CASE WHEN ml_id IS NOT NULL AND active = 1 THEN 1 END) as active_synced_products
+        COUNT(CASE WHEN ml_id IS NOT NULL AND active = true THEN 1 END) as active_synced_products
       FROM products
     `);
     
@@ -508,7 +508,7 @@ router.get('/products', requireAdmin, async (req, res) => {
     const { page = 1, limit = 20, search = '', synced_only = false } = req.query;
     const offset = (page - 1) * limit;
     
-    let whereClause = 'WHERE p.active = 1';
+    let whereClause = 'WHERE p.active = true';
     const queryParams = [];
     
     if (search) {
@@ -732,26 +732,25 @@ router.get('/sync/stats', requireAdmin, async (req, res) => {
         COUNT(*) as total_syncs,
         COUNT(CASE WHEN status = 'completed' THEN 1 END) as successful_syncs,
         COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_syncs,
-        AVG(CASE WHEN status = 'completed' THEN success_items END) as avg_success_items
-      FROM mercado_livre_sync_jobs
-      WHERE account_id = ? AND created_at >= ?
+        AVG(CASE WHEN status = 'completed' THEN processed END) as avg_success_items
+      FROM sync_jobs
+      WHERE created_at >= $1
       GROUP BY DATE(created_at)
       ORDER BY date DESC
-    `, [account.id, thirtyDaysAgo]);
+    `, [thirtyDaysAgo]);
     
     // Estatísticas gerais
     const generalStats = await query(`
       SELECT 
         COUNT(*) as total_jobs,
-        COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_jobs,
+        COUNT(CASE WHEN status = 'success' THEN 1 END) as completed_jobs,
         COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_jobs,
         COUNT(CASE WHEN status = 'running' THEN 1 END) as running_jobs,
         MAX(created_at) as last_sync,
-        AVG(CASE WHEN status = 'completed' AND completed_at IS NOT NULL THEN 
-          TIMESTAMPDIFF(SECOND, started_at, completed_at) END) as avg_duration_seconds
-      FROM mercado_livre_sync_jobs
-      WHERE account_id = ?
-    `, [account.id]);
+        AVG(CASE WHEN status = 'success' AND finished_at IS NOT NULL THEN 
+          EXTRACT(EPOCH FROM (finished_at - started_at)) END) as avg_duration_seconds
+      FROM sync_jobs
+    `);
     
     res.json({
       daily_stats: stats,
