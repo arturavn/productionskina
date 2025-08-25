@@ -534,7 +534,7 @@ router.get('/products', requireAdmin, async (req, res) => {
         p.ml_family_id,
         c.name as category_name
       FROM products p
-      LEFT JOIN categories c ON p.categoryId = c.id
+      LEFT JOIN categories c ON p.category_id = c.id
       ${whereClause}
       ORDER BY p.created_at DESC
       LIMIT $1 OFFSET $2
@@ -815,7 +815,7 @@ router.post('/import/:mlId', requireAdmin, async (req, res) => {
       discountPrice: customPrice || mlProduct.price,
       imageUrl: mlProduct.pictures?.[0]?.secure_url || mlProduct.thumbnail,
       brand: null,
-      categoryId: categoryId || null,
+      category_id: categoryId || null,
       stockQuantity: mlProduct.available_quantity || 0,
       inStock: (mlProduct.available_quantity || 0) > 0,
       specifications: JSON.stringify({
@@ -860,7 +860,7 @@ router.post('/import/:mlId', requireAdmin, async (req, res) => {
       const insertResult = await connection.query(
         `INSERT INTO products (
           name, description, originalPrice, discountPrice, imageUrl, brand,
-          categoryId, stockQuantity, inStock, specifications, compatibility,
+          category_id, stockQuantity, inStock, specifications, compatibility,
           sku, weight, dimensions, viewCount, featured, active,
           ml_id, ml_seller_id, ml_family_id, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
@@ -899,7 +899,7 @@ router.post('/import/:mlId', requireAdmin, async (req, res) => {
     const importedProduct = await query(
       `SELECT p.*, c.name as category_name 
        FROM products p 
-       LEFT JOIN categories c ON p.categoryId = c.id 
+       LEFT JOIN categories c ON p.category_id = c.id 
        WHERE p.id = ?`,
       [result]
     );
