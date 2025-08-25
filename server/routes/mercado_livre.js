@@ -392,7 +392,7 @@ router.get('/sync/jobs/:id', requireAdmin, async (req, res) => {
         created_at,
         updated_at
       FROM sync_jobs 
-      WHERE id = ?
+      WHERE id = $1
     `;
     
     const result = await query(jobQuery, [id]);
@@ -488,7 +488,7 @@ router.get('/stats', requireAdmin, async (req, res) => {
         COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_syncs,
         MAX(created_at) as last_sync
       FROM sync_jobs
-      WHERE account_id = ?
+      WHERE account_id = $1
     `, [account.id]);
     
     res.json({
@@ -512,7 +512,7 @@ router.get('/products', requireAdmin, async (req, res) => {
     const queryParams = [];
     
     if (search) {
-      whereClause += ' AND (p.name LIKE ? OR p.sku LIKE ?)';
+      whereClause += ' AND (p.name LIKE $' + (params.length + 1) + ' OR p.sku LIKE $' + (params.length + 2) + ')';
       queryParams.push(`%${search}%`, `%${search}%`);
     }
     
@@ -616,7 +616,7 @@ router.get('/ml-products', requireAdmin, async (req, res) => {
           
           // Verificar se já existe no nosso banco
           const existingProduct = await query(
-            'SELECT id, name FROM products WHERE ml_id = ?',
+            'SELECT id, name FROM products WHERE ml_id = $1',
             [productId]
           );
           
@@ -778,7 +778,7 @@ router.post('/import/:mlId', requireAdmin, async (req, res) => {
     
     // Verificar se o produto já foi importado
     const existingProduct = await query(
-      'SELECT id, name FROM products WHERE ml_id = ?',
+      'SELECT id, name FROM products WHERE ml_id = $1',
       [mlId]
     );
     
@@ -899,7 +899,7 @@ router.post('/import/:mlId', requireAdmin, async (req, res) => {
       `SELECT p.*, c.name as category_name 
        FROM products p 
        LEFT JOIN categories c ON p.category_id = c.id 
-       WHERE p.id = ?`,
+       WHERE p.id = $1`,
       [result]
     );
     
