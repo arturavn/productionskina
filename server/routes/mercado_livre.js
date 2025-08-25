@@ -525,10 +525,10 @@ router.get('/products', requireAdmin, async (req, res) => {
         p.id,
         p.name,
         p.sku,
-        p.originalPrice,
-        p.discountPrice,
-        p.imageUrl,
-        p.stockQuantity,
+        p.original_price,
+        p.discount_price,
+        p.image_url,
+        p.stock_quantity,
         p.ml_id,
         p.ml_seller_id,
         p.ml_family_id,
@@ -859,9 +859,9 @@ router.post('/import/:mlId', requireAdmin, async (req, res) => {
       // Inserir produto
       const insertResult = await connection.query(
         `INSERT INTO products (
-          name, description, originalPrice, discountPrice, imageUrl, brand,
-          category_id, stockQuantity, inStock, specifications, compatibility,
-          sku, weight, dimensions, viewCount, featured, active,
+          name, description, original_price, discount_price, image_url, brand,
+          category_id, stock_quantity, in_stock, specifications, compatibility,
+          sku, weight, dimensions, view_count, featured, active,
           ml_id, ml_seller_id, ml_family_id, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
         [
