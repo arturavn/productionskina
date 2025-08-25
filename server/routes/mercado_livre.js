@@ -430,7 +430,7 @@ router.get('/sync/jobs', requireAdmin, async (req, res) => {
         created_at
       FROM mercado_livre_sync_jobs 
       ORDER BY created_at DESC 
-      LIMIT ? OFFSET ?
+      LIMIT $1 OFFSET $2
     `;
     
     const jobs = await query(jobsQuery, [parseInt(limit), parseInt(offset)]);
@@ -537,7 +537,7 @@ router.get('/products', requireAdmin, async (req, res) => {
       LEFT JOIN categories c ON p.categoryId = c.id
       ${whereClause}
       ORDER BY p.created_at DESC
-      LIMIT ? OFFSET ?
+      LIMIT $1 OFFSET $2
     `;
     
     queryParams.push(parseInt(limit), parseInt(offset));
@@ -548,7 +548,7 @@ router.get('/products', requireAdmin, async (req, res) => {
     const countQuery = `
       SELECT COUNT(*) as total
       FROM products p
-      ${whereClause.replace('LIMIT ? OFFSET ?', '')}
+      ${whereClause.replace('LIMIT $1 OFFSET $2', '')}
     `;
     
     const countResult = await query(countQuery, queryParams.slice(0, -2));
