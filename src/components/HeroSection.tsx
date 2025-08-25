@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import MercadoLivreWelcomeCard from './MercadoLivreWelcomeCard';
+import { useNavigate } from 'react-router-dom';
 import { useSlides } from '@/hooks/useApi';
 
 const HeroSection = () => {
+  const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentBrandSlide, setCurrentBrandSlide] = useState(0);
   
   // Buscar slides da API
   const { data: slidesData, isLoading: slidesLoading } = useSlides();
   
-  // Slides da API + slide especial do Mercado Livre
+  // Slides da API
   const apiSlides = slidesData?.slides || [];
   const slides = [
     ...apiSlides.map(slide => ({
@@ -20,15 +21,7 @@ const HeroSection = () => {
       cta: slide.ctaText,
       ctaLink: slide.ctaLink,
       background: slide.backgroundImage
-    })),
-    {
-      type: "mercado-livre-card",
-      title: "Card do Mercado Livre",
-      subtitle: "Card especial de boas-vindas",
-      cta: "Ver Ofertas",
-      ctaLink: "/produtos",
-      background: "linear-gradient(to bottom, #fbbf24, #fde68a)"
-    }
+    }))
   ];
 
   // Integração com API para marcas
@@ -74,39 +67,32 @@ const HeroSection = () => {
                 }
             }
           >
-            {('type' in slide && slide.type === 'mercado-livre-card') ? (
-              <div className="max-w-md mx-auto">
-                <MercadoLivreWelcomeCard />
-              </div>
-            ) : (
-              <div className="text-white dark:text-white max-w-4xl px-6">
-                <h2 className="text-4xl md:text-6xl font-bold mb-4 animate-fade-in text-white dark:text-white">
-                  {slide.title}
-                </h2>
-                <p className="text-xl md:text-2xl mb-8 opacity-90 text-white dark:text-white">
-                  {slide.subtitle}
-                </p>
-                <Button 
-                  className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-8 py-4 text-lg rounded-xl"
-                  onClick={() => {
-                    if ('ctaLink' in slide && slide.ctaLink) {
-                      if (slide.ctaLink.startsWith('http')) {
-                        window.open(slide.ctaLink, '_blank');
-                      } else {
-                        window.location.href = slide.ctaLink;
-                      }
-                    } else if (slide.cta === 'Saiba Mais') {
-                      const whatsappNumber = '556133540877';
-                      const message = 'Olá! Gostaria de saber mais sobre a entrega rápida em todo DF.';
-                      const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
-                      window.open(url, '_blank');
-                    }
-                  }}
-                >
-                  {slide.cta}
-                </Button>
-              </div>
-            )}
+            <div className="text-white dark:text-white max-w-4xl px-6">
+              <h2 className="text-4xl md:text-6xl font-bold mb-4 animate-fade-in text-white dark:text-white">
+                {slide.title}
+              </h2>
+              <p className="text-xl md:text-2xl mb-8 opacity-90 text-white dark:text-white">
+                {slide.subtitle}
+              </p>
+              <Button 
+                className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-8 py-4 text-lg rounded-xl"
+                onClick={() => {
+                  if (slide.ctaLink?.startsWith('/')) {
+                    navigate(slide.ctaLink);
+                  } else if (slide.ctaLink?.includes('whatsapp') || slide.ctaLink?.includes('wa.me')) {
+                    window.open(slide.ctaLink, '_blank');
+                  } else {
+                    // Fallback para WhatsApp padrão
+                    const whatsappNumber = '5561999887766';
+                    const message = 'Olá! Gostaria de saber mais sobre a entrega rápida em todo DF.';
+                    const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+                    window.open(url, '_blank');
+                  }
+                }}
+              >
+                {slide.cta}
+              </Button>
+            </div>
           </div>
         ))}
 
