@@ -811,13 +811,13 @@ router.post('/import/:mlId', requireAdmin, async (req, res) => {
     const productData = {
       name: customName || mlProduct.title,
       description: mlProduct.descriptions?.[0]?.plain_text || mlProduct.title,
-      originalPrice: customPrice || mlProduct.price,
-      discountPrice: customPrice || mlProduct.price,
-      imageUrl: mlProduct.pictures?.[0]?.secure_url || mlProduct.thumbnail,
+      original_price: customPrice || mlProduct.price,
+            discount_price: customPrice || mlProduct.price,
+            image_url: mlProduct.pictures?.[0]?.secure_url || mlProduct.thumbnail,
       brand: null,
       category_id: categoryId || null,
-      stockQuantity: mlProduct.available_quantity || 0,
-      inStock: (mlProduct.available_quantity || 0) > 0,
+      stock_quantity: mlProduct.available_quantity || 0,
+            in_stock: (mlProduct.available_quantity || 0) > 0,
       specifications: JSON.stringify({
         condition: mlProduct.condition,
         listing_type: mlProduct.listing_type_id,
@@ -829,7 +829,7 @@ router.post('/import/:mlId', requireAdmin, async (req, res) => {
       sku: mlProduct.seller_custom_field || `ML-${mlId}`,
       weight: null,
       dimensions: JSON.stringify({}),
-      viewCount: 0,
+      view_count: 0,
       featured: false,
       active: true,
       ml_id: mlId,
@@ -865,11 +865,11 @@ router.post('/import/:mlId', requireAdmin, async (req, res) => {
           ml_id, ml_seller_id, ml_family_id, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
         [
-          productData.name, productData.description, productData.originalPrice,
-          productData.discountPrice, productData.imageUrl, productData.brand,
-          productData.categoryId, productData.stockQuantity, productData.inStock,
+          productData.name, productData.description, productData.original_price,
+                productData.discount_price, productData.image_url, productData.brand,
+                productData.category_id, productData.stock_quantity, productData.in_stock,
           productData.specifications, productData.compatibility, productData.sku,
-          productData.weight, productData.dimensions, productData.viewCount,
+          productData.weight, productData.dimensions, productData.view_count,
           productData.featured, productData.active, productData.ml_id,
           productData.ml_seller_id, productData.ml_family_id
         ]
