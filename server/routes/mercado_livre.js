@@ -379,18 +379,14 @@ router.get('/sync/jobs/:id', requireAdmin, async (req, res) => {
     const jobQuery = `
       SELECT 
         id,
-        account_id,
+        type,
         status,
-        total_items,
-        processed_items,
-        success_items,
-        error_items,
-        current_item,
-        error_message,
+        total,
+        processed,
         started_at,
-        completed_at,
-        created_at,
-        updated_at
+        finished_at,
+        error,
+        created_at
       FROM sync_jobs 
       WHERE id = $1
     `;
@@ -419,14 +415,13 @@ router.get('/sync/jobs', requireAdmin, async (req, res) => {
     const jobsQuery = `
       SELECT 
         id,
-        account_id,
+        type,
         status,
-        total_items,
-        processed_items,
-        success_items,
-        error_items,
+        total,
+        processed,
         started_at,
-        completed_at,
+        finished_at,
+        error,
         created_at
       FROM sync_jobs 
       ORDER BY created_at DESC 
@@ -484,12 +479,11 @@ router.get('/stats', requireAdmin, async (req, res) => {
     const syncStats = await query(`
       SELECT 
         COUNT(*) as total_syncs,
-        COUNT(CASE WHEN status = 'completed' THEN 1 END) as successful_syncs,
+        COUNT(CASE WHEN status = 'success' THEN 1 END) as successful_syncs,
         COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_syncs,
         MAX(created_at) as last_sync
       FROM sync_jobs
-      WHERE account_id = $1
-    `, [account.id]);
+    `);
     
     res.json({
       general: generalStats[0],
@@ -512,7 +506,7 @@ router.get('/products', requireAdmin, async (req, res) => {
     const queryParams = [];
     
     if (search) {
-      whereClause += ' AND (p.name LIKE $' + (params.length + 1) + ' OR p.sku LIKE $' + (params.length + 2) + ')';
+      whereClause += ' AND (p.name LIKE $' + (queryParams.length + 1) + ' OR p.sku LIKE $' + (queryParams.length + 2) + ')';
       queryParams.push(`%${search}%`, `%${search}%`);
     }
     
@@ -542,7 +536,7 @@ router.get('/products', requireAdmin, async (req, res) => {
     
     queryParams.push(parseInt(limit), parseInt(offset));
     
-    const products = await query(productsQuery, queryParams);
+    const { rows: products } = await query(productsQuery, queryParams);
     
     // Contar total
     const countQuery = `
@@ -551,8 +545,8 @@ router.get('/products', requireAdmin, async (req, res) => {
       ${whereClause.replace('LIMIT $1 OFFSET $2', '')}
     `;
     
-    const countResult = await query(countQuery, queryParams.slice(0, -2));
-    const total = countResult[0].total;
+    const { rows: countResult } = await query(countQuery, queryParams.slice(0, -2));
+    const total = parseInt(countResult[0].total);
     
     res.json({
       products,
