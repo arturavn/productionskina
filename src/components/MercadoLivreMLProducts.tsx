@@ -19,7 +19,7 @@ interface MercadoLivreProduct {
   status: string;
   category_id: string;
   listing_type_id: string;
-  variations: any[];
+  variations: Array<{id: string; attribute_combinations: Array<{id: string; value_id: string; value_name: string}>; price: number; available_quantity: number}>;
   pictures: string[];
   description: string;
   permalink: string;
@@ -451,8 +451,8 @@ const MercadoLivreMLProducts: React.FC = () => {
                   
                   <PaginationItem>
                     <PaginationNext
-                      onClick={() => handlePageChange((pagination?.offset || 0) + (pagination?.limit || 20))}
-                      className={(pagination?.offset || 0) + (pagination?.limit || 20) >= (pagination?.total || 0) ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      onClick={() => handlePageChange((pagination?.offset || 0) + (pagination?.limit || 50))}
+                      className={(pagination?.offset || 0) + (pagination?.limit || 50) >= (pagination?.total || 0) ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                     />
                   </PaginationItem>
                 </PaginationContent>
