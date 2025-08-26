@@ -11,8 +11,8 @@ const __dirname = path.dirname(__filename);
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'skina_ecommerce',
-  user: process.env.DB_USER || 'postgres',
+  database: process.env.DB_NAME || 'skina_ecopecas',
+  user: process.env.DB_USER || 'arturnunes',
   password: process.env.DB_PASSWORD || '',
   ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
 };
