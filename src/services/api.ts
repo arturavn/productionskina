@@ -1396,6 +1396,206 @@ class ApiService {
       version: string;
     }>('/health');
   }
+
+  // === MERCADO LIVRE ===
+  async getMercadoLivreStatus() {
+    return this.request<{
+      connected: boolean;
+      account?: any;
+      lastSync?: string;
+    }>('/mercado_livre/status');
+  }
+
+  async getMercadoLivreProducts(params?: {
+    limit?: number;
+    offset?: number;
+    search?: string;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.offset) queryParams.append('offset', params.offset.toString());
+    if (params?.search) queryParams.append('search', params.search);
+
+    const endpoint = `/mercado_livre/products${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request<{
+      success: boolean;
+      products: any[];
+      pagination: {
+        total: number;
+        limit: number;
+        offset: number;
+      };
+    }>(endpoint);
+  }
+
+  async getMercadoLivreMLProducts(params?: {
+    limit?: number;
+    offset?: number;
+    search?: string;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.offset) queryParams.append('offset', params.offset.toString());
+    if (params?.search) queryParams.append('search', params.search);
+
+    const endpoint = `/mercado_livre/ml-products${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request<{
+      success: boolean;
+      products: any[];
+      pagination: {
+        total: number;
+        limit: number;
+        offset: number;
+      };
+    }>(endpoint);
+  }
+
+  async getMercadoLivreSyncConfig() {
+    return this.request<{
+      success: boolean;
+      config: Record<string, string>;
+    }>('/mercado_livre/sync/config');
+  }
+
+  async updateMercadoLivreSyncConfig(key: string, value: string) {
+    return this.request<{
+      success: boolean;
+      message: string;
+    }>('/mercado_livre/sync/config', {
+      method: 'POST',
+      body: JSON.stringify({ key, value }),
+    });
+  }
+
+  async runMercadoLivreSync(type: 'delta' | 'full_import') {
+    return this.request<{
+      success: boolean;
+      message: string;
+      jobId?: string;
+    }>('/mercado_livre/sync/run', {
+      method: 'POST',
+      body: JSON.stringify({ type }),
+    });
+  }
+
+  async syncMercadoLivreProduct(mlId: string) {
+    return this.request<{
+      success: boolean;
+      message: string;
+      result: {
+        action: string;
+        diff?: any;
+      };
+    }>(`/mercado_livre/sync/item/${mlId}`, {
+      method: 'POST',
+    });
+  }
+
+  async getMercadoLivreSyncJobs(params?: {
+    limit?: number;
+    offset?: number;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.offset) queryParams.append('offset', params.offset.toString());
+
+    const endpoint = `/mercado_livre/sync/jobs${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request<{
+      success: boolean;
+      jobs: any[];
+      pagination?: {
+        total: number;
+        limit: number;
+        offset: number;
+      };
+    }>(endpoint);
+  }
+
+  async getMercadoLivreSyncJob(jobId: string) {
+    return this.request<{
+      success: boolean;
+      job: any;
+    }>(`/mercado_livre/sync/jobs/${jobId}`);
+  }
+
+  async getMercadoLivreSyncStats() {
+    return this.request<{
+      success: boolean;
+      stats: {
+        totalProducts: number;
+        syncedProducts: number;
+        errorProducts: number;
+        lastSync: string;
+        activeJobs: number;
+      };
+    }>('/mercado_livre/sync/stats');
+  }
+
+
+
+  async authenticateMercadoLivre() {
+    return this.request<{
+      success: boolean;
+      authUrl?: string;
+      error?: string;
+    }>('/mercado_livre/auth', {
+      method: 'POST',
+    });
+  }
+
+  async disconnectMercadoLivre() {
+    return this.request<{
+      success: boolean;
+      message: string;
+      status_updated?: boolean;
+    }>('/mercado_livre/disconnect', {
+      method: 'POST',
+    });
+  }
+
+  async importMercadoLivreProduct(mlId: string) {
+    return this.request<{
+      success: boolean;
+      message: string;
+      productId?: string;
+      result?: any;
+    }>(`/mercado_livre/import/${mlId}`, {
+      method: 'POST',
+    });
+  }
+
+  async getMercadoLivreTokenStatus() {
+    return this.request<{
+      success: boolean;
+      tokenStatus: {
+        valid: boolean;
+        reason: string;
+        needsRefresh?: boolean;
+      };
+      account: {
+        id: string;
+        sellerId: string;
+        nickname: string;
+        expiresAt: string;
+        hasRefreshToken: boolean;
+      };
+    }>('/mercado_livre/token-status');
+  }
+
+  async refreshMercadoLivreToken() {
+    return this.request<{
+      success: boolean;
+      message: string;
+      expiresAt?: string;
+      needsRefresh?: boolean;
+    }>('/mercado_livre/refresh-token', {
+      method: 'POST',
+    });
+  }
+
+
+
+
 }
 
 // Instância singleton da API

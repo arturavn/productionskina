@@ -6,9 +6,11 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import WebhookRetryService from './services/WebhookRetryService.js';
+import MercadoLivreSyncService from './services/MercadoLivreSyncService.js';
 
 // Configurar variáveis de ambiente PRIMEIRO
-dotenv.config();
+// Carregar .env da raiz do projeto (../.env)
+dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env') });
 
 // Para usar __dirname com ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -28,6 +30,8 @@ import preferencesRoutes from './routes/preferences.js';
 import testRoutes from './routes/test.js';
 import couponRoutes from './routes/coupons.js';
 import slidesRoutes from './routes/slides.js';
+import mercadoLivreRoutes from './routes/mercado_livre.js';
+
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -119,6 +123,7 @@ app.use('/api/preferences', preferencesRoutes);
 app.use('/api/test', testRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/slides', slidesRoutes);
+app.use('/api/mercado_livre', mercadoLivreRoutes);
 
 
 // Rota de health check
@@ -180,7 +185,12 @@ app.listen(PORT, '0.0.0.0', async () => {
       const webhookRetryService = new WebhookRetryService();
       await webhookRetryService.start();
       
+      // Iniciar MercadoLivreSyncService automaticamente
+      const mercadoLivreSyncService = new MercadoLivreSyncService();
+      await mercadoLivreSyncService.start();
+      
       console.log('✅ WebhookRetryService iniciado automaticamente');
+      console.log('✅ MercadoLivreSyncService iniciado automaticamente');
       console.log('✅ Cache de pagamentos ativo');
       console.log('✅ Validações robustas ativas');
       

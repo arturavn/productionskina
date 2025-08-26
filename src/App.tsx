@@ -24,6 +24,7 @@ import PaymentFailure from "./pages/PaymentFailure";
 import CheckoutPending from "./pages/CheckoutPending";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Orders from "./pages/Orders";
+import MercadoLivrePage from "./app/admin/mercado-livre/page";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -67,6 +68,11 @@ const App = () => (
             <Route path="/admin" element={
               <ProtectedRoute requireAdmin={true}>
                 <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/mercado-livre" element={
+              <ProtectedRoute requireAdmin={true}>
+                <MercadoLivrePage />
               </ProtectedRoute>
             } />
             <Route path="/shipping-test" element={<ShippingTest />} />

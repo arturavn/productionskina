@@ -11,12 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useProducts, useAdminProducts, useLogout, useAdminDashboard, useAdminUsers, useAdminOrders, useUpdateOrderStatus, useDeleteOrder, useCreateProduct, useUpdateProduct, useDeleteProduct, useProductImages, useUploadProductImages, useSetPrimaryImage, useDeleteImage, useUpdateUser, useDeleteUser, useDeactivateUser, useActivateUser, usePromoteUser, useDemoteUser, usePromoteToCollaborator, useDemoteFromCollaborator, useCategories, useResetAllViewCounts, useAdminUserById, useAdminSlides, useCreateSlide, useUpdateSlide, useDeleteSlide, useReorderSlides, useAuth } from '@/hooks/useApi';
+import { useProducts, useAdminProducts, useLogout, useAdminDashboard, useAdminUsers, useAdminOrders, useUpdateOrderStatus, useDeleteOrder, useCreateProduct, useUpdateProduct, useDeleteProduct, useProductImages, useUploadProductImages, useSetPrimaryImage, useDeleteImage, useUpdateUser, useDeleteUser, useDeactivateUser, useActivateUser, usePromoteUser, useDemoteUser, usePromoteToCollaborator, useDemoteFromCollaborator, useCategories, useResetAllViewCounts, useAdminUserById, useAdminSlides, useCreateSlide, useUpdateSlide, useDeleteSlide, useReorderSlides, useAuth, useMercadoLivreStatusSync } from '@/hooks/useApi';
 import { api } from '@/services/api';
 import AdminOrderDetailsModal from '@/components/AdminOrderDetailsModal';
 import ImageManager from '@/components/ImageManager';
 import { useShippingLabelGenerator } from '@/components/ShippingLabelGenerator';
 import { toast } from 'sonner';
+
 import { 
   Package, 
   Users, 
@@ -39,7 +40,10 @@ import {
   UserCheck,
   RotateCcw,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  RefreshCw,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 
 // Type definitions
@@ -185,6 +189,81 @@ interface OrderData {
   };
 }
 
+// Componentes auxiliares para Mercado Livre
+const MercadoLivreStatusBadge = ({ mlStatus, isLoading, error }: {
+  mlStatus: any;
+  isLoading: boolean;
+  error: any;
+}) => {
+  if (isLoading) {
+    return (
+      <Badge variant="outline" className="text-gray-600 border-gray-600">
+        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+        Carregando...
+      </Badge>
+    );
+  }
+  
+  if (error || !mlStatus) {
+    return (
+      <Badge variant="outline" className="text-red-600 border-red-600">
+        <XCircle className="w-3 h-3 mr-1" />
+        Erro
+      </Badge>
+    );
+  }
+  
+  if (mlStatus.connected) {
+    return (
+      <Badge variant="outline" className="text-green-600 border-green-600 bg-green-50">
+        <CheckCircle className="w-3 h-3 mr-1" />
+        Conectado
+      </Badge>
+    );
+  }
+  
+  return (
+    <Badge variant="outline" className="text-red-600 border-red-600 bg-red-50">
+      <XCircle className="w-3 h-3 mr-1" />
+      Não conectado
+    </Badge>
+  );
+};
+
+const MercadoLivreLastSync = ({ mlStatus }: { mlStatus: any }) => {
+  if (mlStatus?.lastSync?.timestamp) {
+    try {
+      const date = new Date(mlStatus.lastSync.timestamp);
+      
+      // Verificar se a data é válida
+      if (isNaN(date.getTime())) {
+        console.error('Data inválida recebida:', mlStatus.lastSync.timestamp);
+        return 'Data inválida';
+      }
+      
+      // Formatar data e hora no formato brasileiro
+      return date.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error('Erro ao formatar data:', error);
+      return 'Data inválida';
+    }
+  }
+  return 'Nunca';
+};
+
+const MercadoLivreProductCount = ({ mlStatus }: { mlStatus: any }) => {
+  if (mlStatus?.productStats?.total !== undefined) {
+    return mlStatus.productStats.total;
+  }
+  return 0;
+};
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -290,6 +369,9 @@ const AdminDashboard = () => {
   const updateSlideMutation = useUpdateSlide();
   const deleteSlideMutation = useDeleteSlide();
   const reorderSlidesMutation = useReorderSlides();
+  
+  // Hook para status do Mercado Livre (com sincronização)
+  const mlStatus = useMercadoLivreStatusSync();
   
   // Estados para o formulário de produto
   const [productForm, setProductForm] = useState({
@@ -1192,7 +1274,7 @@ const AdminDashboard = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className={`grid w-full ${user?.role === 'admin' ? 'grid-cols-7' : 'grid-cols-3'}`}>
+          <TabsList className={`grid w-full ${user?.role === 'admin' ? 'grid-cols-8' : 'grid-cols-3'}`}>
             {user?.role === 'admin' && (
               <>
                 <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
@@ -1201,6 +1283,7 @@ const AdminDashboard = () => {
                 <TabsTrigger value="orders">Pedidos</TabsTrigger>
                 <TabsTrigger value="users">Usuários</TabsTrigger>
                 <TabsTrigger value="slides">Slides</TabsTrigger>
+                <TabsTrigger value="integration">Integração</TabsTrigger>
                 <TabsTrigger value="reports">Relatórios</TabsTrigger>
               </>
             )}
@@ -2163,7 +2246,7 @@ const AdminDashboard = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {categoriesData?.categories?.map((category) => (
+                      {categoriesData?.data?.categories?.map((category) => (
                         <TableRow key={category.id}>
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-3">
@@ -2423,6 +2506,60 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
+          {/* Integration Tab */}
+          <TabsContent value="integration" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-3xl font-bold tracking-tight">Integração com Mercado Livre</h2>
+            </div>
+            
+            {/* Integração Completa */}
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <img 
+                      src="/images/mercado-livre.png" 
+                      alt="Mercado Livre" 
+                      className="w-12 h-10 object-contain"
+                    />
+                    Integração Mercado Livre
+                  </CardTitle>
+                  
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Status:</span>
+                    <MercadoLivreStatusBadge 
+                      mlStatus={mlStatus?.data} 
+                      isLoading={mlStatus?.isLoading} 
+                      error={mlStatus?.error} 
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Última sincronização:</span>
+                    <span className="text-sm text-muted-foreground">
+                      <MercadoLivreLastSync mlStatus={mlStatus?.data} />
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Quantidade de produtos da Conexão:</span>
+                    <span className="text-sm text-muted-foreground">
+                      <MercadoLivreProductCount mlStatus={mlStatus?.data} />
+                    </span>
+                  </div>
+                  
+                  <Button 
+                    className="w-full bg-skina-green hover:bg-skina-green/90 text-white"
+                    onClick={() => navigate('/admin/mercado-livre')}
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    Gerenciar Integração
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
           {/* Reports Tab */}
           <TabsContent value="reports" className="space-y-6">
             <div className="flex justify-between items-center">
@@ -2597,19 +2734,19 @@ const AdminDashboard = () => {
                   ) : dashboardData?.conversionMetrics ? (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-center p-3 bg-blue-50 rounded-lg">
-                        <p className="text-2xl font-bold text-blue-600">{(Number(dashboardData.conversionMetrics.customer_conversion_rate) || 0).toFixed(1)}%</p>
+                        <p className="text-2xl font-bold text-blue-600">{dashboardData.conversionMetrics.customer_conversion_rate}%</p>
                         <p className="text-xs text-muted-foreground">Taxa de Conversão</p>
                       </div>
                       <div className="text-center p-3 bg-green-50 rounded-lg">
-                        <p className="text-2xl font-bold text-green-600">{(Number(dashboardData.conversionMetrics.avg_orders_per_customer) || 0).toFixed(1)}</p>
+                        <p className="text-2xl font-bold text-green-600">{dashboardData.conversionMetrics.avg_orders_per_customer.toString()}</p>
                         <p className="text-xs text-muted-foreground">Pedidos por Cliente</p>
                       </div>
                       <div className="text-center p-3 bg-purple-50 rounded-lg">
-                        <p className="text-2xl font-bold text-purple-600">R$ {(Number(dashboardData.conversionMetrics.avg_order_value) || 0).toFixed(2)}</p>
+                        <p className="text-2xl font-bold text-purple-600">R$ {(dashboardData.conversionMetrics.avg_order_value || 0).toFixed(2)}</p>
                         <p className="text-xs text-muted-foreground">Ticket Médio</p>
                       </div>
                       <div className="text-center p-3 bg-orange-50 rounded-lg">
-                        <p className="text-2xl font-bold text-orange-600">{Number(dashboardData.conversionMetrics.unique_customers) || 0}</p>
+                        <p className="text-2xl font-bold text-orange-600">{dashboardData.conversionMetrics.unique_customers.toString()}</p>
                         <p className="text-xs text-muted-foreground">Clientes Únicos</p>
                       </div>
                     </div>

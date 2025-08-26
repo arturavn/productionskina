@@ -1355,3 +1355,122 @@ export const useTestShippingService = () => {
     retry: false,
   });
 };
+
+// === HOOKS PARA MERCADO LIVRE ===
+export const useMercadoLivreStatus = () => {
+  const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  const fetchStatus = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        setError('Token não encontrado');
+        setIsLoading(false);
+        return;
+      }
+      
+      const response = await fetch('/api/mercado_livre/status', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch Mercado Livre status');
+      }
+      
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchStatus();
+  }, []);
+  
+  return { data, isLoading, error, refetch: fetchStatus };
+};
+
+// Hook para sincronizar status do Mercado Livre entre telas
+export const useMercadoLivreStatusSync = () => {
+  const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  const fetchStatus = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        setError('Token não encontrado');
+        setIsLoading(false);
+        return;
+      }
+      
+      const response = await fetch('/api/mercado_livre/status', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch Mercado Livre status');
+      }
+      
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchStatus();
+    
+    // Escutar eventos de mudança de status
+    const handleStatusChange = () => {
+      fetchStatus();
+    };
+    
+    // Escutar eventos personalizados
+    window.addEventListener('mercado-livre-status-changed', handleStatusChange);
+    
+    // Escutar mudanças no localStorage (fallback)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'mercado_livre_status') {
+        fetchStatus();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('mercado-livre-status-changed', handleStatusChange);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+  
+  return { data, isLoading, error, refetch: fetchStatus };
+};
+
+// Função para notificar mudanças de status
+export const notifyMercadoLivreStatusChange = () => {
+  // Disparar evento personalizado
+  window.dispatchEvent(new CustomEvent('mercado-livre-status-changed'));
+  
+  // Atualizar localStorage como fallback
+  localStorage.setItem('mercado_livre_status', Date.now().toString());
+};
