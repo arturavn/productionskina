@@ -633,7 +633,7 @@ router.get('/stats', requireAdmin, async (req, res) => {
 // GET /api/mercado_livre/products - Listar produtos com status de sync
 router.get('/products', requireAdmin, async (req, res) => {
   try {
-    const { limit = 50, offset = 0, search = '' } = req.query;
+    const { limit = 100, offset = 0, search = '' } = req.query;
     
     // Query simplificada para produtos básicos
     let sql = `
@@ -695,7 +695,7 @@ router.get('/products', requireAdmin, async (req, res) => {
 // GET /api/mercado_livre/ml-products - Listar produtos diretamente do Mercado Livre
 router.get('/ml-products', requireAdmin, async (req, res) => {
   try {
-    const { limit = 50, offset = 0, search = '' } = req.query;
+    const { limit = 100, offset = 0, search = '' } = req.query;
     
     console.log('🔍 Buscando produtos do Mercado Livre com parâmetros:', { limit, offset, search });
     

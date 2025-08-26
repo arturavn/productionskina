@@ -56,7 +56,7 @@ const MercadoLivreMLProducts: React.FC = () => {
     try {
       setLoading(true);
       const response = await api.getMercadoLivreMLProducts({
-        limit: pagination?.limit || 50,
+        limit: pagination?.limit || 100,
         offset: pagination?.offset || 0,
         search
       });
