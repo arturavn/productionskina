@@ -135,7 +135,6 @@ INSERT INTO ml_sync_config (key, value, description) VALUES
     ('batch_size', '200', 'Tamanho do lote para processamento'),
     ('retry_attempts', '3', 'Número de tentativas de retry'),
     ('rate_limit_delay_ms', '500', 'Delay entre requisições para respeitar rate limit'),
-
     ('sync_timeout_seconds', '300', 'Timeout para operações de sincronização')
 ON CONFLICT (key) DO UPDATE SET
     value = EXCLUDED.value,
