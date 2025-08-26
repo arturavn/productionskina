@@ -71,10 +71,56 @@ async function runMigration() {
     
     logInfo('🔄 Executando migração...');
     
-    const commands = sqlContent
-      .split(';')
-      .map(cmd => cmd.trim())
-      .filter(cmd => cmd.length > 0 && !cmd.startsWith('--'));
+    // Função para dividir SQL respeitando blocos DO $$ ... END $$
+    function splitSQLCommands(sql) {
+      const commands = [];
+      let currentCommand = '';
+      let inDollarQuote = false;
+      let dollarTag = '';
+      
+      const lines = sql.split('\n');
+      
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        
+        // Ignorar comentários
+        if (trimmedLine.startsWith('--') || trimmedLine === '') {
+          continue;
+        }
+        
+        currentCommand += line + '\n';
+        
+        // Detectar início de bloco dollar-quoted
+        const dollarMatch = line.match(/\$([^$]*)\$/);
+        if (dollarMatch && !inDollarQuote) {
+          inDollarQuote = true;
+          dollarTag = dollarMatch[0];
+        }
+        // Detectar fim de bloco dollar-quoted
+        else if (inDollarQuote && line.includes(dollarTag)) {
+          inDollarQuote = false;
+          dollarTag = '';
+        }
+        
+        // Se encontrar ';' e não estiver em bloco dollar-quoted
+        if (line.includes(';') && !inDollarQuote) {
+          const cmd = currentCommand.trim();
+          if (cmd.length > 0) {
+            commands.push(cmd);
+          }
+          currentCommand = '';
+        }
+      }
+      
+      // Adicionar último comando se houver
+      if (currentCommand.trim().length > 0) {
+        commands.push(currentCommand.trim());
+      }
+      
+      return commands;
+    }
+    
+    const commands = splitSQLCommands(sqlContent);
     
     logInfo(`Executando ${commands.length} comandos SQL...`);
     
