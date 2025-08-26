@@ -633,7 +633,7 @@ router.get('/stats', requireAdmin, async (req, res) => {
 // GET /api/mercado_livre/products - Listar produtos com status de sync
 router.get('/products', requireAdmin, async (req, res) => {
   try {
-    const { limit = 50, offset = 0, search = '' } = req.query;
+    const { limit = 100, offset = 0, search = '' } = req.query;
     
     // Query simplificada para produtos básicos
     let sql = `
@@ -695,9 +695,12 @@ router.get('/products', requireAdmin, async (req, res) => {
 // GET /api/mercado_livre/ml-products - Listar produtos diretamente do Mercado Livre
 router.get('/ml-products', requireAdmin, async (req, res) => {
   try {
-    const { limit = 50, offset = 0, search = '' } = req.query;
+    console.log('🔄 [ML-PRODUCTS] Iniciando busca de produtos ML');
+    const { limit = 100, offset = 0, search = '' } = req.query;
+    const userId = req.user.userId;
     
-    console.log('🔍 Buscando produtos do Mercado Livre com parâmetros:', { limit, offset, search });
+    console.log('📋 [ML-PRODUCTS] Parâmetros:', { limit, offset, search, userId });
+    console.log('🔍 [ML-PRODUCTS] Buscando produtos do Mercado Livre com parâmetros:', { limit, offset, search });
     
     // Buscar configurações de rate limiting do banco
     const { rows: configRows } = await query('SELECT key, value FROM ml_sync_config WHERE key = $1', ['rate_limit_delay_ms']);
@@ -734,6 +737,7 @@ router.get('/ml-products', requireAdmin, async (req, res) => {
       searchParams.q = search.trim();
     }
     
+    console.log('🔍 [ML-PRODUCTS] Fazendo busca de produtos no ML API...');
     let productsResponse;
     try {
       productsResponse = await axios.get(`https://api.mercadolibre.com/users/${account.seller_id}/items/search`, {
@@ -754,15 +758,35 @@ router.get('/ml-products', requireAdmin, async (req, res) => {
       }
     }
     
+    console.log('📦 [ML-PRODUCTS] Resposta da busca ML:', {
+      status: productsResponse.status,
+      resultsCount: productsResponse.data.results?.length || 0
+    });
+    
     const productIds = productsResponse.data.results || [];
+    if (productIds.length === 0) {
+      console.log('⚠️ [ML-PRODUCTS] Nenhum produto encontrado');
+      return res.json({
+        success: true,
+        products: [],
+        pagination: {
+          total: 0,
+          limit: parseInt(limit),
+          offset: parseInt(offset)
+        }
+      });
+    }
+    
+    console.log('📋 [ML-PRODUCTS] IDs de produtos encontrados:', productIds.length);
     console.log(`IDs de produtos encontrados: ${productIds.length}`);
     
     // Buscar detalhes de cada produto
+    console.log('🔄 [ML-PRODUCTS] Iniciando busca de detalhes dos produtos...');
     const products = [];
     for (let i = 0; i < Math.min(productIds.length, parseInt(limit)); i++) {
       try {
         const productId = productIds[i];
-        console.log(`🔍 Buscando detalhes do produto ${productId} (${i + 1}/${Math.min(productIds.length, parseInt(limit))})`);
+        console.log(`🔍 [ML-PRODUCTS] Buscando detalhes do produto ${productId} (${i + 1}/${Math.min(productIds.length, parseInt(limit))})`);
         
         const productResponse = await axios.get(`https://api.mercadolibre.com/items/${productId}`, {
           params: {
@@ -781,8 +805,9 @@ router.get('/ml-products', requireAdmin, async (req, res) => {
             }
           });
           description = descResponse.data.plain_text || '';
+          console.log(`📝 [ML-PRODUCTS] Descrição obtida para ${productId}: ${description.length} caracteres`);
         } catch (descError) {
-          console.log(`⚠️ Erro ao buscar descrição do produto ${productId}:`, descError.message);
+          console.log(`⚠️ [ML-PRODUCTS] Erro ao buscar descrição do produto ${productId}:`, descError.message);
         }
         
         // Mapear dados do produto
@@ -810,19 +835,23 @@ router.get('/ml-products', requireAdmin, async (req, res) => {
         await new Promise(resolve => setTimeout(resolve, rateLimitDelay));
         
       } catch (productError) {
-        console.error(`❌ Erro ao buscar produto ${productIds[i]}:`, productError.message);
+        console.error(`❌ [ML-PRODUCTS] Erro ao buscar produto ${productIds[i]}:`, {
+          message: productError.message,
+          status: productError.response?.status,
+          statusText: productError.response?.statusText
+        });
         
         // Se for rate limiting, aguardar mais tempo
         if (productError.response?.status === 429) {
           const retryDelay = rateLimitDelay * 4; // 4x o delay normal para retry
-          console.log(`⚠️ Rate limiting detectado, aguardando ${retryDelay}ms...`);
+          console.log(`⚠️ [ML-PRODUCTS] Rate limiting detectado, aguardando ${retryDelay}ms...`);
           await new Promise(resolve => setTimeout(resolve, retryDelay));
         }
         
       }
     }
     
-    console.log(`✅ Produtos processados com sucesso: ${products.length}`);
+    console.log(`✅ [ML-PRODUCTS] Produtos processados com sucesso: ${products.length}`);
     
     res.json({
       success: true,
@@ -835,11 +864,33 @@ router.get('/ml-products', requireAdmin, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Erro ao buscar produtos do Mercado Livre:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Falha ao buscar produtos do Mercado Livre',
-      message: error.message
+    console.error('❌ [ML-PRODUCTS] Erro geral na rota /ml-products:', {
+      message: error.message,
+      stack: error.stack,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data
+    });
+    
+    // Determinar código de status baseado no erro
+    let statusCode = 500;
+    let errorMessage = 'Erro interno do servidor ao buscar produtos do Mercado Livre';
+    
+    if (error.response?.status === 401) {
+      statusCode = 401;
+      errorMessage = 'Token de acesso do Mercado Livre inválido ou expirado';
+    } else if (error.response?.status === 403) {
+      statusCode = 403;
+      errorMessage = 'Acesso negado pela API do Mercado Livre';
+    } else if (error.response?.status === 429) {
+      statusCode = 429;
+      errorMessage = 'Limite de requisições excedido. Tente novamente em alguns minutos';
+    }
+    
+    res.status(statusCode).json({ 
+      success: false, 
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });

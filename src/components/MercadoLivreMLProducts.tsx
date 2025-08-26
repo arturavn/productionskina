@@ -19,7 +19,7 @@ interface MercadoLivreProduct {
   status: string;
   category_id: string;
   listing_type_id: string;
-  variations: Array<{id: string; attribute_combinations: Array<{id: string; value_id: string; value_name: string}>; price: number; available_quantity: number}>;
+  variations: any[];
   pictures: string[];
   description: string;
   permalink: string;
@@ -55,25 +55,75 @@ const MercadoLivreMLProducts: React.FC = () => {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const response = await api.getMercadoLivreMLProducts({
-        limit: pagination?.limit || 50,
+      console.log('🔄 Iniciando carregamento de produtos do ML...');
+      console.log('Parâmetros:', {
+        limit: pagination?.limit || 100,
         offset: pagination?.offset || 0,
         search
       });
       
-      if (response.success) {
+      const response = await api.getMercadoLivreMLProducts({
+        limit: pagination?.limit || 100,
+        offset: pagination?.offset || 0,
+        search
+      });
+      
+      console.log('📦 Resposta da API:', response);
+      
+      if (response && response.success) {
         // Filtrar apenas produtos ativos
-        const activeProducts = response.products.filter(product => product.status === 'active');
+        const allProducts = response.products || [];
+        const activeProducts = allProducts.filter(product => product.status === 'active');
         setProducts(activeProducts);
         setPagination(response.pagination);
         
-        console.log(`Produtos recebidos: ${response.products.length}, Produtos ativos: ${activeProducts.length}`);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar produtos do ML:', error);
+        console.log(`✅ Produtos processados: Total=${allProducts.length}, Ativos=${activeProducts.length}`);
+        
+        if (activeProducts.length === 0 && allProducts.length > 0) {
+          toast({
+            title: 'Aviso',
+            description: `Encontrados ${allProducts.length} produtos, mas nenhum está ativo para exibição`,
+            variant: 'default'
+          });
+        }
+      } else {
+         console.error('❌ Resposta da API sem success:', response);
+         setProducts([]);
+         setPagination(null);
+         toast({
+           title: 'Erro',
+           description: 'Resposta inválida da API',
+           variant: 'destructive'
+         });
+       }
+     } catch (error: unknown) {
+      const errorDetails = error as Error & { response?: { data?: unknown; status?: number; statusText?: string } };
+       console.error('❌ Erro detalhado ao carregar produtos do ML:', {
+         message: errorDetails.message,
+         stack: errorDetails.stack,
+         response: errorDetails.response?.data,
+         status: errorDetails.response?.status,
+         statusText: errorDetails.response?.statusText
+       });
+      
+      setProducts([]);
+      setPagination(null);
+      
+      // Mensagem de erro mais específica
+       let errorMessage = 'Falha ao carregar produtos do Mercado Livre';
+       if (errorDetails.response?.status === 401) {
+         errorMessage = 'Erro de autenticação. Faça login novamente.';
+       } else if (errorDetails.response?.status === 403) {
+         errorMessage = 'Acesso negado. Verifique suas permissões.';
+       } else if (errorDetails.response?.status === 429) {
+         errorMessage = 'Muitas requisições. Tente novamente em alguns minutos.';
+       } else if (errorDetails.message) {
+         errorMessage = errorDetails.message;
+       }
+      
       toast({
         title: 'Erro',
-        description: 'Falha ao carregar produtos do Mercado Livre',
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {
@@ -451,8 +501,8 @@ const MercadoLivreMLProducts: React.FC = () => {
                   
                   <PaginationItem>
                     <PaginationNext
-                      onClick={() => handlePageChange((pagination?.offset || 0) + (pagination?.limit || 50))}
-                      className={(pagination?.offset || 0) + (pagination?.limit || 50) >= (pagination?.total || 0) ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      onClick={() => handlePageChange((pagination?.offset || 0) + (pagination?.limit || 20))}
+                      className={(pagination?.offset || 0) + (pagination?.limit || 20) >= (pagination?.total || 0) ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                     />
                   </PaginationItem>
                 </PaginationContent>
