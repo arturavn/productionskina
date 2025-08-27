@@ -6,7 +6,7 @@ dotenv.config();
 
 // Configuração do pool de conexões PostgreSQL
 const pool = new Pool({
-  user: process.env.DB_USER || 'arturnunes',
+  user: process.env.DB_USER || 'postgres',
   host: process.env.DB_HOST || 'localhost',
   database: process.env.DB_NAME || 'skina_ecopecas',
   password: process.env.DB_PASSWORD || '',

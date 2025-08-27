@@ -82,11 +82,11 @@ cat /root/.pm2/logs/skina-backend-out.log
 
 ### Conectar ao PostgreSQL
 ```bash
-# Conectar como usuário arturnunes
-psql -h localhost -U arturnunes -d skina_ecopecas
+# Conectar como usuário postgres
+psql -h localhost -U postgres -d skina_ecopecas
 
-# Conectar e executar comando
-psql -h localhost -U arturnunes -d skina_ecopecas -c "\dt"
+# Listar tabelas
+psql -h localhost -U postgres -d skina_ecopecas -c "\dt"
 ```
 
 ### Backup do Banco
@@ -96,7 +96,7 @@ cd /var/www/productionskina
 ./backup-database.sh
 
 # Backup manual
-pg_dump -h localhost -U arturnunes -d skina_ecopecas > backup_$(date +%Y%m%d_%H%M%S).sql
+pg_dump -h localhost -U postgres -d skina_ecopecas > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
 ## 🔄 Comandos de Manutenção

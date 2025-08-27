@@ -35,13 +35,13 @@ INSERT INTO slides (id, title, subtitle, background_image, cta_text, cta_link, d
 ('550e8400-e29b-41d4-a716-446655440002'::uuid, 'Entrega Rápida em Todo Brasil', 'Receba suas peças com segurança e agilidade onde você estiver', 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80', 'Saiba Mais', '/shipping', 2, true),
 ('550e8400-e29b-41d4-a716-446655440003'::uuid, 'Suporte Especializado', 'Nossa equipe está pronta para ajudar você a encontrar a peça certa', 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80', 'Fale Conosco', '/contact', 3, true);
 
--- Alterar o owner da tabela para arturnunes
-ALTER TABLE slides OWNER TO arturnunes;
+-- Alterar o owner da tabela para postgres
+ALTER TABLE slides OWNER TO postgres;
 
--- Conceder permissões ao usuário arturnunes
-GRANT ALL PRIVILEGES ON TABLE slides TO arturnunes;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO arturnunes;
-GRANT ALL PRIVILEGES ON SCHEMA public TO arturnunes;
+-- Conceder permissões ao usuário postgres
+GRANT ALL PRIVILEGES ON TABLE slides TO postgres;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO postgres;
+GRANT ALL PRIVILEGES ON SCHEMA public TO postgres;
 
 -- Confirmar que a tabela foi criada
 \echo 'Tabela slides criada com sucesso e permissões concedidas!';
