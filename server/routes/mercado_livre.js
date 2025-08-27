@@ -693,6 +693,7 @@ router.get('/products', requireAdmin, async (req, res) => {
 });
 
 // GET /api/mercado_livre/ml-products - Listar produtos diretamente do Mercado Livre
+
 router.get('/ml-products', requireAdmin, async (req, res) => {
   try {
     console.log('🔄 [ML-PRODUCTS] Iniciando busca de produtos ML');
@@ -724,7 +725,42 @@ router.get('/ml-products', requireAdmin, async (req, res) => {
       });
     }
     
-    // Buscar produtos do Mercado Livre
+    // Primeiro, buscar o total de produtos ATIVOS para calcular paginação correta
+    const totalSearchParams = {
+      access_token: account.access_token,
+      limit: 1, // Buscar apenas 1 produto para obter o total
+      offset: 0,
+      status: 'active' // Filtrar apenas produtos ativos
+    };
+    
+    // Adicionar filtro de busca se fornecido
+    if (search && search.trim()) {
+      totalSearchParams.q = search.trim();
+    }
+    
+    let totalResponse;
+    try {
+      totalResponse = await axios.get(`https://api.mercadolibre.com/users/${account.seller_id}/items/search`, {
+        params: totalSearchParams
+      });
+    } catch (searchError) {
+      if (searchError.response?.status === 429) {
+        const retryDelay = rateLimitDelay * 6;
+        console.log(`⚠️ Rate limiting na busca de total, aguardando ${retryDelay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        
+        totalResponse = await axios.get(`https://api.mercadolibre.com/users/${account.seller_id}/items/search`, {
+          params: totalSearchParams
+        });
+      } else {
+        throw searchError;
+      }
+    }
+    
+    const totalProducts = totalResponse.data.paging?.total || 0;
+    console.log(`📊 Total de produtos disponíveis: ${totalProducts}`);
+    
+    // Agora buscar os produtos ATIVOS da página atual
     const searchParams = {
       access_token: account.access_token,
       limit: parseInt(limit),
@@ -732,12 +768,10 @@ router.get('/ml-products', requireAdmin, async (req, res) => {
       status: 'active' // Filtrar apenas produtos ativos
     };
     
-    // Adicionar filtro de busca se fornecido
     if (search && search.trim()) {
       searchParams.q = search.trim();
     }
     
-    console.log('🔍 [ML-PRODUCTS] Fazendo busca de produtos no ML API...');
     let productsResponse;
     try {
       productsResponse = await axios.get(`https://api.mercadolibre.com/users/${account.seller_id}/items/search`, {
@@ -745,48 +779,28 @@ router.get('/ml-products', requireAdmin, async (req, res) => {
       });
     } catch (searchError) {
       if (searchError.response?.status === 429) {
-        const retryDelay = rateLimitDelay * 6; // 6x o delay normal para busca inicial
-        console.log(`⚠️ Rate limiting na busca inicial, aguardando ${retryDelay}ms...`);
+        const retryDelay = rateLimitDelay * 6;
+        console.log(`⚠️ Rate limiting na busca de produtos, aguardando ${retryDelay}ms...`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));
         
-        // Tentar novamente
         productsResponse = await axios.get(`https://api.mercadolibre.com/users/${account.seller_id}/items/search`, {
-          params: searchParams
-        });
+           params: searchParams
+         });
       } else {
         throw searchError;
       }
     }
     
-    console.log('📦 [ML-PRODUCTS] Resposta da busca ML:', {
-      status: productsResponse.status,
-      resultsCount: productsResponse.data.results?.length || 0
-    });
-    
     const productIds = productsResponse.data.results || [];
-    if (productIds.length === 0) {
-      console.log('⚠️ [ML-PRODUCTS] Nenhum produto encontrado');
-      return res.json({
-        success: true,
-        products: [],
-        pagination: {
-          total: 0,
-          limit: parseInt(limit),
-          offset: parseInt(offset)
-        }
-      });
-    }
-    
-    console.log('📋 [ML-PRODUCTS] IDs de produtos encontrados:', productIds.length);
     console.log(`IDs de produtos encontrados: ${productIds.length}`);
     
-    // Buscar detalhes de cada produto
-    console.log('🔄 [ML-PRODUCTS] Iniciando busca de detalhes dos produtos...');
-    const products = [];
-    for (let i = 0; i < Math.min(productIds.length, parseInt(limit)); i++) {
+    // Buscar detalhes de cada produto (todos serão ativos devido ao filtro)
+    const activeProducts = [];
+    
+    for (let i = 0; i < productIds.length; i++) {
       try {
         const productId = productIds[i];
-        console.log(`🔍 [ML-PRODUCTS] Buscando detalhes do produto ${productId} (${i + 1}/${Math.min(productIds.length, parseInt(limit))})`);
+        console.log(`🔍 Buscando detalhes do produto ativo ${productId} (${i + 1}/${productIds.length})`);
         
         const productResponse = await axios.get(`https://api.mercadolibre.com/items/${productId}`, {
           params: {
@@ -805,9 +819,8 @@ router.get('/ml-products', requireAdmin, async (req, res) => {
             }
           });
           description = descResponse.data.plain_text || '';
-          console.log(`📝 [ML-PRODUCTS] Descrição obtida para ${productId}: ${description.length} caracteres`);
         } catch (descError) {
-          console.log(`⚠️ [ML-PRODUCTS] Erro ao buscar descrição do produto ${productId}:`, descError.message);
+          console.log(`⚠️ Erro ao buscar descrição do produto ${productId}:`, descError.message);
         }
         
         // Mapear dados do produto
@@ -829,37 +842,47 @@ router.get('/ml-products', requireAdmin, async (req, res) => {
           last_updated: productData.last_updated
         };
         
-        products.push(mappedProduct);
+        activeProducts.push(mappedProduct);
         
         // Pausa configurável para evitar rate limiting da API do Mercado Livre
         await new Promise(resolve => setTimeout(resolve, rateLimitDelay));
         
       } catch (productError) {
-        console.error(`❌ [ML-PRODUCTS] Erro ao buscar produto ${productIds[i]}:`, {
-          message: productError.message,
-          status: productError.response?.status,
-          statusText: productError.response?.statusText
-        });
+        console.error(`❌ Erro ao buscar produto ${productIds[i]}:`, productError.message);
         
         // Se for rate limiting, aguardar mais tempo
         if (productError.response?.status === 429) {
           const retryDelay = rateLimitDelay * 4; // 4x o delay normal para retry
-          console.log(`⚠️ [ML-PRODUCTS] Rate limiting detectado, aguardando ${retryDelay}ms...`);
+          console.log(`⚠️ Rate limiting detectado, aguardando ${retryDelay}ms...`);
           await new Promise(resolve => setTimeout(resolve, retryDelay));
         }
-        
       }
     }
     
-    console.log(`✅ [ML-PRODUCTS] Produtos processados com sucesso: ${products.length}`);
+    // Produtos já vêm filtrados como ativos da API do ML
+    const requestedLimit = parseInt(limit);
+    const requestedOffset = parseInt(offset);
+    
+    console.log(`✅ Produtos ativos processados com sucesso: ${activeProducts.length} produtos`);
+    console.log(`📄 Página atual: produtos ${requestedOffset + 1} a ${requestedOffset + activeProducts.length} de ${totalProducts} total (apenas ativos)`);
     
     res.json({
       success: true,
-      products: products,
+      products: activeProducts,
       pagination: {
-        total: productsResponse.data.paging?.total || 0,
-        limit: parseInt(limit),
-        offset: parseInt(offset)
+        total: totalProducts,
+        limit: requestedLimit,
+        offset: requestedOffset,
+        totalPages: Math.ceil(totalProducts / requestedLimit),
+        currentPage: Math.floor(requestedOffset / requestedLimit) + 1,
+        hasNextPage: requestedOffset + requestedLimit < totalProducts,
+        hasPrevPage: requestedOffset > 0
+      },
+      stats: {
+        totalProducts: activeProducts.length,
+        activeProducts: activeProducts.length,
+        inactiveProducts: 0,
+        currentPageType: 'active'
       }
     });
     

@@ -151,7 +151,20 @@ const ProductDetail = () => {
     });
   }
   
-  // Se não há imagens da API, usar a imagem principal do produto
+  // Se não há imagens da API, mas há mlImages, usar as imagens do Mercado Livre
+  if (allImages.length === 0 && productResponse.product.mlImages && productResponse.product.mlImages.length > 0) {
+    productResponse.product.mlImages.forEach((imageUrl, index) => {
+      allImages.push({
+        url: imageUrl,
+        isPrimary: index === 0, // Primeira imagem como principal
+        id: `ml-${index}`,
+        displayOrder: index,
+        imageName: `Imagem ML ${index + 1}`
+      });
+    });
+  }
+  
+  // Se não há imagens da API nem mlImages, usar a imagem principal do produto
   if (allImages.length === 0) {
     allImages.push({
       url: productImage,

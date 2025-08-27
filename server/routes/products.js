@@ -47,9 +47,36 @@ router.get('/', async (req, res) => {
         const productData = product.toJSON();
         const images = await Product.getImages(product.id);
         
-        if (images.length > 0) {
+        // Priorizar imagens do Mercado Livre se o produto tiver ml_id
+        if (productData.ml_id) {
+          const mlImages = await Product.getMercadoLivreImages(productData.ml_id);
+          if (mlImages.length > 0) {
+            // Usar a primeira imagem do ML como principal
+            productData.image = mlImages[0].image_url;
+            productData.imageUrl = mlImages[0].image_url;
+            // Adicionar todas as imagens do ML
+            productData.mlImages = mlImages.map(img => img.image_url);
+          } else if (images.length > 0) {
+            // Fallback para imagens da tabela product_images
+            const primaryImage = images.find(img => img.is_primary) || images[0];
+            productData.imageUrl = `/api/products/images/${primaryImage.id}`;
+            productData.image = `/api/products/images/${primaryImage.id}`;
+            productData.mlImages = null;
+          } else {
+            // Manter imageUrl original e mapear para o campo image também
+            productData.image = productData.imageUrl;
+            productData.mlImages = null;
+          }
+        } else if (images.length > 0) {
+          // Para produtos sem ml_id, usar imagens da tabela product_images
           const primaryImage = images.find(img => img.is_primary) || images[0];
           productData.imageUrl = `/api/products/images/${primaryImage.id}`;
+          productData.image = `/api/products/images/${primaryImage.id}`;
+          productData.mlImages = null;
+        } else {
+          // Manter imageUrl original e mapear para o campo image também
+          productData.image = productData.imageUrl;
+          productData.mlImages = null;
         }
         
         return productData;
@@ -289,10 +316,32 @@ router.get('/:id', async (req, res) => {
     const images = await Product.getImages(id);
     const productData = product.toJSON();
     
-    // Adicionar URL da imagem principal se existir
-    if (images.length > 0) {
+    // Priorizar imagens do Mercado Livre se o produto tiver ml_id
+    if (productData.ml_id) {
+      const mlImages = await Product.getMercadoLivreImages(productData.ml_id);
+      if (mlImages.length > 0) {
+        // Usar a primeira imagem do ML como principal
+        productData.image = mlImages[0].image_url;
+        productData.imageUrl = mlImages[0].image_url;
+        // Adicionar todas as imagens do ML
+        productData.mlImages = mlImages.map(img => img.image_url);
+      } else if (images.length > 0) {
+        // Fallback para imagens da tabela product_images
+        const primaryImage = images.find(img => img.is_primary) || images[0];
+        productData.imageUrl = `/api/products/images/${primaryImage.id}`;
+        productData.image = `/api/products/images/${primaryImage.id}`;
+      } else {
+        // Manter imageUrl original e mapear para o campo image também
+        productData.image = productData.imageUrl;
+      }
+    } else if (images.length > 0) {
+      // Para produtos sem ml_id, usar imagens da tabela product_images
       const primaryImage = images.find(img => img.is_primary) || images[0];
       productData.imageUrl = `/api/products/images/${primaryImage.id}`;
+      productData.image = `/api/products/images/${primaryImage.id}`;
+    } else {
+      // Manter imageUrl original e mapear para o campo image também
+      productData.image = productData.imageUrl;
     }
     
     res.json({

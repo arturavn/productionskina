@@ -1,0 +1,11 @@
+version: "2"
+authtoken: # Adicione seu token aqui se necessário
+tunnels:
+  frontend:
+    addr: 5173
+    proto: http
+    subdomain: skina-frontend # opcional, remova se não tiver conta paga
+  backend:
+    addr: 3001
+    proto: http
+    subdomain: skina-backend # opcional, remova se não tiver conta paga

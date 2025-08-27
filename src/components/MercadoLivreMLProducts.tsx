@@ -19,7 +19,7 @@ interface MercadoLivreProduct {
   status: string;
   category_id: string;
   listing_type_id: string;
-  variations: any[];
+  variations: unknown[];
   pictures: string[];
   description: string;
   permalink: string;
@@ -44,7 +44,13 @@ const MercadoLivreMLProducts: React.FC = () => {
     limit: number;
     offset: number;
   } | null>(null);
+  const [stats, setStats] = useState<{
+    totalProducts: number;
+    activeProducts: number;
+    inactiveProducts: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [progressMessage, setProgressMessage] = useState<string>('');
   const { toast } = useToast();
 
   // Carregamento inicial
@@ -52,78 +58,93 @@ const MercadoLivreMLProducts: React.FC = () => {
     loadProducts();
   }, []);
 
-  const loadProducts = async () => {
+
+
+  const loadProducts = async (customOffset?: number) => {
     try {
       setLoading(true);
-      console.log('🔄 Iniciando carregamento de produtos do ML...');
-      console.log('Parâmetros:', {
-        limit: pagination?.limit || 100,
-        offset: pagination?.offset || 0,
-        search
-      });
+      setProgressMessage('');
+      const currentOffset = customOffset !== undefined ? customOffset : (pagination?.offset || 0);
+      const currentLimit = pagination?.limit || 100;
+      
+      console.log('🔄 Carregando produtos do ML...');
+      setProgressMessage('🔄 Iniciando busca de produtos do Mercado Livre...');
+      
+      // Simular progresso durante o carregamento
+      const progressInterval = setInterval(() => {
+        const messages = [
+          '🔍 Conectando com a API do Mercado Livre...',
+          '📋 Buscando lista de produtos ativos...',
+          '🔍 Carregando detalhes dos produtos...',
+          '📊 Processando informações dos produtos...'
+        ];
+        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        setProgressMessage(randomMessage);
+      }, 1500);
       
       const response = await api.getMercadoLivreMLProducts({
-        limit: pagination?.limit || 100,
-        offset: pagination?.offset || 0,
-        search
+        limit: currentLimit,
+        offset: currentOffset,
+        search: search || ''
       });
+
+      clearInterval(progressInterval);
       
-      console.log('📦 Resposta da API:', response);
-      
-      if (response && response.success) {
-        // Filtrar apenas produtos ativos
-        const allProducts = response.products || [];
-        const activeProducts = allProducts.filter(product => product.status === 'active');
-        setProducts(activeProducts);
-        setPagination(response.pagination);
-        
-        console.log(`✅ Produtos processados: Total=${allProducts.length}, Ativos=${activeProducts.length}`);
-        
-        if (activeProducts.length === 0 && allProducts.length > 0) {
-          toast({
-            title: 'Aviso',
-            description: `Encontrados ${allProducts.length} produtos, mas nenhum está ativo para exibição`,
-            variant: 'default'
-          });
+      if (response) {
+          // Mapear produtos da API para o tipo esperado
+          const mappedProducts: MercadoLivreProduct[] = response.products.map((product: {
+            id: string;
+            title: string;
+            price: number;
+            available_quantity: number;
+            thumbnail: string;
+            status: string;
+            category_id?: string;
+            listing_type_id?: string;
+            description?: string;
+            permalink?: string;
+            created?: string;
+            last_updated?: string;
+            [key: string]: unknown;
+          }) => ({
+            id: product.id,
+            title: product.title,
+            price: product.price,
+            available_quantity: product.available_quantity,
+            thumbnail: product.thumbnail,
+            status: product.status,
+            category_id: product.category_id || '',
+            listing_type_id: product.listing_type_id || '',
+            variations: [],
+            pictures: [],
+            description: product.description || '',
+            permalink: product.permalink || '',
+            seller_id: '',
+            created: product.created || '',
+            last_updated: product.last_updated || ''
+          }));
+          
+          setProducts(mappedProducts);
+          setPagination(response.pagination);
+          setStats(null); // API não retorna stats para ML products
+          setProgressMessage(`✅ ${mappedProducts.length} produtos carregados com sucesso!`);
+          console.log(`✅ Produtos carregados: ${mappedProducts.length}`);
+          
+          // Limpar mensagem de sucesso após 2 segundos
+          setTimeout(() => setProgressMessage(''), 2000);
         }
-      } else {
-         console.error('❌ Resposta da API sem success:', response);
-         setProducts([]);
-         setPagination(null);
-         toast({
-           title: 'Erro',
-           description: 'Resposta inválida da API',
-           variant: 'destructive'
-         });
-       }
-     } catch (error: unknown) {
+    } catch (error: unknown) {
       const errorDetails = error as Error & { response?: { data?: unknown; status?: number; statusText?: string } };
-       console.error('❌ Erro detalhado ao carregar produtos do ML:', {
-         message: errorDetails.message,
-         stack: errorDetails.stack,
-         response: errorDetails.response?.data,
-         status: errorDetails.response?.status,
-         statusText: errorDetails.response?.statusText
-       });
+      console.error('❌ Erro ao carregar produtos:', errorDetails);
       
       setProducts([]);
       setPagination(null);
-      
-      // Mensagem de erro mais específica
-       let errorMessage = 'Falha ao carregar produtos do Mercado Livre';
-       if (errorDetails.response?.status === 401) {
-         errorMessage = 'Erro de autenticação. Faça login novamente.';
-       } else if (errorDetails.response?.status === 403) {
-         errorMessage = 'Acesso negado. Verifique suas permissões.';
-       } else if (errorDetails.response?.status === 429) {
-         errorMessage = 'Muitas requisições. Tente novamente em alguns minutos.';
-       } else if (errorDetails.message) {
-         errorMessage = errorDetails.message;
-       }
+      setStats(null);
+      setProgressMessage('❌ Erro ao carregar produtos');
       
       toast({
-        title: 'Erro',
-        description: errorMessage,
+        title: 'Erro ao carregar produtos',
+        description: errorDetails.response?.status === 401 ? 'Não autorizado' : 'Erro interno do servidor',
         variant: 'destructive'
       });
     } finally {
@@ -165,17 +186,23 @@ const MercadoLivreMLProducts: React.FC = () => {
 
   const handleSearch = (value: string) => {
     setSearch(value);
-    setPagination(prev => ({ ...prev, offset: 0 }));
+    setPagination(prev => ({
+      total: prev?.total || 0,
+      limit: prev?.limit || 100,
+      offset: 0
+    }));
     setTimeout(() => {
-      loadProducts();
+      loadProducts(0);
     }, 500);
   };
 
   const handlePageChange = (newOffset: number) => {
-    setPagination(prev => ({ ...prev, offset: newOffset }));
-    setTimeout(() => {
-      loadProducts();
-    }, 100);
+    setPagination(prev => ({
+      total: prev?.total || 0,
+      limit: prev?.limit || 100,
+      offset: newOffset
+    }));
+    loadProducts(newOffset);
   };
 
   const handleSelectProduct = (productId: string, checked: boolean) => {
@@ -278,9 +305,11 @@ const MercadoLivreMLProducts: React.FC = () => {
   if (loading && products.length === 0) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="text-center">
+        <div className="text-center max-w-md">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p>Carregando produtos do Mercado Livre...</p>
+          <p className="text-sm text-gray-600">
+            {progressMessage || 'Carregando produtos do Mercado Livre...'}
+          </p>
         </div>
       </div>
     );
@@ -304,11 +333,15 @@ const MercadoLivreMLProducts: React.FC = () => {
                 Produtos listados diretamente da sua conta do Mercado Livre
               </CardDescription>
               <div className="text-sm text-muted-foreground mt-1">
-                Apenas produtos com status "Ativo" são exibidos para importação
+                {stats ? (
+                  `Exibindo ${stats.totalProducts} produtos (${stats.activeProducts} ativos, ${stats.inactiveProducts} inativos)`
+                ) : (
+                  'Produtos ativos e inativos são exibidos, mas apenas ativos podem ser importados'
+                )}
               </div>
             </div>
             <Button
-              onClick={loadProducts}
+              onClick={() => loadProducts()}
               disabled={loading}
               variant="outline"
               size="sm"
@@ -330,12 +363,12 @@ const MercadoLivreMLProducts: React.FC = () => {
               />
             </div>
             <div className="text-sm text-muted-foreground">
-              {products.length > 0 && (
+              {products.length > 0 && stats && (
                 <span>
-                  Exibindo {products.length} produtos ativos
-                  {pagination && pagination.total > products.length && (
-                    <span className="text-orange-600">
-                      {' '}({pagination.total - products.length} inativos encontrados)
+                  Exibindo {products.length} produtos ({stats.activeProducts} ativos, {stats.inactiveProducts} inativos)
+                  {pagination && (
+                    <span className="ml-2 text-blue-600">
+                      Página {Math.floor(pagination.offset / pagination.limit) + 1} de {Math.ceil(pagination.total / pagination.limit)}
                     </span>
                   )}
                 </span>
@@ -483,21 +516,81 @@ const MercadoLivreMLProducts: React.FC = () => {
                     />
                   </PaginationItem>
                   
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const page = i + 1;
-                    const offset = (page - 1) * (pagination?.limit || 20);
+                  {(() => {
+                    const maxVisiblePages = 7;
+                    const halfVisible = Math.floor(maxVisiblePages / 2);
+                    let startPage = Math.max(1, currentPage - halfVisible);
+                     const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+                     
+                     // Ajustar startPage se endPage atingiu o limite
+                     if (endPage - startPage + 1 < maxVisiblePages) {
+                       startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                     }
                     
-                    return (
-                      <PaginationItem key={page}>
-                        <PaginationLink
-                          onClick={() => handlePageChange(offset)}
-                          isActive={currentPage === page}
-                        >
-                          {page}
-                        </PaginationLink>
-                      </PaginationItem>
-                    );
-                  })}
+                    const pages = [];
+                    
+                    // Primeira página
+                    if (startPage > 1) {
+                      pages.push(
+                        <PaginationItem key={1}>
+                          <PaginationLink
+                            onClick={() => handlePageChange(0)}
+                            isActive={currentPage === 1}
+                          >
+                            1
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                      
+                      if (startPage > 2) {
+                        pages.push(
+                          <PaginationItem key="ellipsis-start">
+                            <span className="px-3 py-2">...</span>
+                          </PaginationItem>
+                        );
+                      }
+                    }
+                    
+                    // Páginas visíveis
+                    for (let page = startPage; page <= endPage; page++) {
+                      const offset = (page - 1) * (pagination?.limit || 20);
+                      pages.push(
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            onClick={() => handlePageChange(offset)}
+                            isActive={currentPage === page}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    }
+                    
+                    // Última página
+                    if (endPage < totalPages) {
+                      if (endPage < totalPages - 1) {
+                        pages.push(
+                          <PaginationItem key="ellipsis-end">
+                            <span className="px-3 py-2">...</span>
+                          </PaginationItem>
+                        );
+                      }
+                      
+                      const lastPageOffset = (totalPages - 1) * (pagination?.limit || 20);
+                      pages.push(
+                        <PaginationItem key={totalPages}>
+                          <PaginationLink
+                            onClick={() => handlePageChange(lastPageOffset)}
+                            isActive={currentPage === totalPages}
+                          >
+                            {totalPages}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    }
+                    
+                    return pages;
+                  })()}
                   
                   <PaginationItem>
                     <PaginationNext

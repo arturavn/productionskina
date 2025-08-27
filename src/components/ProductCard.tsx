@@ -212,7 +212,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Add to Cart Button */}
         <Button 
-          className="w-full bg-gradient-to-r from-skina-green to-green-500 hover:from-skina-green/90 hover:to-green-500/90 text-white font-semibold py-3 rounded-2xl text-base transition-all duration-300 hover:shadow-lg group-hover:scale-[1.02] mt-auto pulse-glow shimmer"
+          className="w-full bg-gradient-to-r from-skina-green to-green-500 hover:from-skina-green/90 hover:to-green-500/90 text-white font-semibold py-3 rounded-2xl text-base hover:shadow-lg group-hover:scale-[1.02] mt-auto pulse-glow shimmer"
           onClick={handleAddToCart}
           disabled={isAddingToCart}
         >

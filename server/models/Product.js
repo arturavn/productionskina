@@ -1122,6 +1122,18 @@ class Product {
     return result;
   }
 
+  // Buscar imagens do Mercado Livre por ML ID
+  static async getMercadoLivreImages(mlId) {
+    const sql = `
+      SELECT image_url, position
+      FROM product_images_ml 
+      WHERE ml_id = $1 
+      ORDER BY position ASC
+    `;
+    const result = await query(sql, [mlId]);
+    return result.rows;
+  }
+
   // Método auxiliar para sincronizar imagens do produto
   static async syncProductImages(mlId, pictures) {
     try {

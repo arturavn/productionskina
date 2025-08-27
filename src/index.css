@@ -265,15 +265,17 @@
 
   /* Pulse Animation for Interactive Elements */
   .pulse-glow {
-    animation: pulseGlow 2s ease-in-out infinite;
+    animation: pulseGlow 30s ease-in-out infinite;
   }
 
   @keyframes pulseGlow {
   0%, 100% { 
     box-shadow: 0 0 5px rgba(34, 197, 94, 0.3);
+    transform: scale(1);
   }
   50% { 
-    box-shadow: 0 0 20px rgba(34, 197, 94, 0.6), 0 0 30px rgba(22, 163, 74, 0.4);
+    box-shadow: 0 0 40px rgba(34, 197, 94, 0.8), 0 0 60px rgba(22, 163, 74, 0.6);
+    transform: scale(1.02);
   }
 }
 

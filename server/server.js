@@ -44,8 +44,8 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-eval'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "blob:"],
-      connectSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "blob:", "https://http2.mlstatic.com"],
+      connectSrc: ["'self'", "https://api.mercadopago.com", "https://api.mercadolibre.com"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
       frameSrc: ["'none'"]
@@ -60,6 +60,11 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
   res.header('Access-Control-Allow-Credentials', 'true');
   
+  // Headers específicos para produção
+  if (process.env.NODE_ENV === 'production') {
+    res.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
   } else {
@@ -67,7 +72,9 @@ app.use((req, res, next) => {
   }
 });
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://skinaecopecas.com.br',
+  origin: [
+    process.env.FRONTEND_URL || 'https://skinaecopecas.com.br'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
@@ -153,6 +160,16 @@ app.use((err, req, res, next) => {
     error: 'Erro interno do servidor',
     message: process.env.NODE_ENV === 'development' ? err.message : 'Algo deu errado'
   });
+});
+
+// Middleware para detectar acesso via ngrok e configurar headers apropriados
+app.use((req, res, next) => {
+  const host = req.get('host');
+  if (host && (host.includes('ngrok') || host.includes('ngrok-free.app'))) {
+    // Adicionar headers para ngrok
+    res.header('ngrok-skip-browser-warning', 'true');
+  }
+  next();
 });
 
 // Servir o frontend para todas as rotas não-API

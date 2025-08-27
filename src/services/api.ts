@@ -1,7 +1,7 @@
 // Configuração da API para conectar com o backend
-// Em desenvolvimento, usar proxy do Vite (/api)
-// Em produção, usar a URL completa do ambiente
-const API_BASE_URL = import.meta.env.MODE === 'development' ? '/api' : (import.meta.env.VITE_API_URL || '/api');
+import { API_CONFIG } from '../config/api';
+
+const API_BASE_URL = API_CONFIG.baseURL;
 
 // Tipos TypeScript
 export interface Product {
@@ -10,6 +10,8 @@ export interface Product {
   originalPrice: number;
   discountPrice: number;
   image: string;
+  imageUrl?: string;
+  mlImages?: string[];
   inStock: number;
   brand: string;
   category: string;
@@ -1401,7 +1403,17 @@ class ApiService {
   async getMercadoLivreStatus() {
     return this.request<{
       connected: boolean;
-      account?: any;
+      account?: {
+        id: string;
+        seller_id: string;
+        nickname: string;
+        email: string;
+        access_token: string;
+        refresh_token: string;
+        expires_at: string;
+        created_at: string;
+        updated_at: string;
+      };
       lastSync?: string;
     }>('/mercado_livre/status');
   }
@@ -1419,11 +1431,16 @@ class ApiService {
     const endpoint = `/mercado_livre/products${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     return this.request<{
       success: boolean;
-      products: any[];
+      products: unknown[];
       pagination: {
         total: number;
         limit: number;
         offset: number;
+      };
+      stats?: {
+        totalProducts: number;
+        activeProducts: number;
+        inactiveProducts: number;
       };
     }>(endpoint);
   }
@@ -1434,14 +1451,24 @@ class ApiService {
     search?: string;
   }) {
     const queryParams = new URLSearchParams();
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.offset) queryParams.append('offset', params.offset.toString());
+    if (params?.limit !== undefined) queryParams.append('limit', params.limit.toString());
+    if (params?.offset !== undefined) queryParams.append('offset', params.offset.toString());
     if (params?.search) queryParams.append('search', params.search);
 
     const endpoint = `/mercado_livre/ml-products${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     return this.request<{
       success: boolean;
-      products: any[];
+      products: {
+        id: string;
+        title: string;
+        price: number;
+        available_quantity: number;
+        status: string;
+        permalink: string;
+        thumbnail: string;
+        description?: string;
+        [key: string]: unknown;
+      }[];
       pagination: {
         total: number;
         limit: number;
@@ -1484,7 +1511,7 @@ class ApiService {
       message: string;
       result: {
         action: string;
-        diff?: any;
+        diff?: Record<string, unknown>;
       };
     }>(`/mercado_livre/sync/item/${mlId}`, {
       method: 'POST',
@@ -1502,7 +1529,15 @@ class ApiService {
     const endpoint = `/mercado_livre/sync/jobs${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     return this.request<{
       success: boolean;
-      jobs: any[];
+      jobs: {
+        id: string;
+        type: string;
+        status: string;
+        progress: number;
+        created_at: string;
+        updated_at: string;
+        [key: string]: unknown;
+      }[];
       pagination?: {
         total: number;
         limit: number;
@@ -1514,7 +1549,15 @@ class ApiService {
   async getMercadoLivreSyncJob(jobId: string) {
     return this.request<{
       success: boolean;
-      job: any;
+      job: {
+        id: string;
+        type: string;
+        status: string;
+        progress: number;
+        created_at: string;
+        updated_at: string;
+        [key: string]: unknown;
+      };
     }>(`/mercado_livre/sync/jobs/${jobId}`);
   }
 
@@ -1558,7 +1601,11 @@ class ApiService {
       success: boolean;
       message: string;
       productId?: string;
-      result?: any;
+      result?: {
+        action: string;
+        product?: Product;
+        [key: string]: unknown;
+      };
     }>(`/mercado_livre/import/${mlId}`, {
       method: 'POST',
     });
