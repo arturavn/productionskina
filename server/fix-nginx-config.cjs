@@ -36,9 +36,17 @@ function checkNginxConfig() {
     if (fs.existsSync(siteConfig)) {
       const config = fs.readFileSync(siteConfig, 'utf8');
       console.log('✅ Arquivo de configuração encontrado:');
-      console.log('---');
-      console.log(config);
-      console.log('---');
+      console.log('📄 Conteúdo atual:');
+      console.log(config.substring(0, 800) + '...');
+      
+      // Verificar se tem proxy_pass para /api/
+      if (config.includes('location /api/') && config.includes('proxy_pass http://127.0.0.1:3001')) {
+        console.log('✅ Configuração de proxy para /api/ encontrada e correta');
+      } else {
+        console.log('❌ Configuração de proxy para /api/ NÃO encontrada ou incorreta');
+        console.log('🔧 Criando configuração correta...');
+        createNginxConfig();
+      }
       
       // Verificar se está habilitado
       if (fs.existsSync(siteEnabled)) {
@@ -59,6 +67,8 @@ function checkNginxConfig() {
 }
 
 function createNginxConfig() {
+  console.log('\n🔧 Criando configuração do Nginx...');
+  
   const config = `server {
     listen 80;
     server_name skinaecopecas.com.br www.skinaecopecas.com.br;
@@ -84,7 +94,7 @@ server {
     root /var/www/productionskina/dist;
     index index.html;
     
-    # API proxy
+    # API proxy - Configuração correta para rotas /api/*
     location /api/ {
         proxy_pass http://127.0.0.1:3001;
         proxy_http_version 1.1;
@@ -115,6 +125,13 @@ server {
 }`;
   
   try {
+    // Fazer backup da configuração atual
+    if (fs.existsSync('/etc/nginx/sites-available/skinaecopecas.com.br')) {
+      const backup = `/etc/nginx/sites-available/skinaecopecas.com.br.backup.${Date.now()}`;
+      fs.copyFileSync('/etc/nginx/sites-available/skinaecopecas.com.br', backup);
+      console.log(`📋 Backup criado: ${backup}`);
+    }
+    
     fs.writeFileSync('/etc/nginx/sites-available/skinaecopecas.com.br', config);
     console.log('✅ Configuração do Nginx criada');
     
@@ -122,6 +139,11 @@ server {
     executeCommand('ln -s /etc/nginx/sites-available/skinaecopecas.com.br /etc/nginx/sites-enabled/', 'Habilitando site');
   } catch (error) {
     console.log(`❌ Erro ao criar configuração: ${error.message}`);
+    console.log('\n📋 Configuração que deveria ser aplicada:');
+    console.log(config);
+    console.log('\n🔧 Execute manualmente:');
+    console.log('sudo nano /etc/nginx/sites-available/skinaecopecas.com.br');
+    console.log('Cole a configuração acima e salve o arquivo.');
   }
 }
 
