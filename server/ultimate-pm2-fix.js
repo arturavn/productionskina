@@ -5,10 +5,11 @@
  * Diagnóstica e corrige definitivamente o problema de carregamento de variáveis de ambiente no PM2
  */
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
-require('dotenv').config();
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
+import dotenv from 'dotenv';
+dotenv.config();
 
 console.log('🔧 ULTIMATE PM2 ENVIRONMENT FIX SCRIPT');
 console.log('=====================================\n');
@@ -74,11 +75,12 @@ function extractDbVars(envVars) {
     return dbVars;
 }
 
-function testDatabaseConnection(dbVars) {
+async function testDatabaseConnection(dbVars) {
     console.log('\n🔍 Testando conexão com PostgreSQL...');
     
     try {
-        const { Pool } = require('pg');
+        const pg = await import('pg');
+        const { Pool } = pg.default;
         
         const pool = new Pool({
             host: dbVars.DB_HOST,
@@ -174,7 +176,7 @@ function restartPM2() {
     }
 }
 
-function main() {
+async function main() {
     logStep(1, 'Verificando arquivos .env existentes');
     
     const rootExists = checkFileExists(rootEnvPath);
@@ -219,7 +221,7 @@ function main() {
     
     logStep(4, 'Testando configuração do banco de dados');
     
-    const connectionTest = testDatabaseConnection(serverDbVars);
+    const connectionTest = await testDatabaseConnection(serverDbVars);
     if (!connectionTest) {
         console.log('\n⚠️  AVISO: Teste de conexão falhou, mas continuando com a correção...');
     }
@@ -274,8 +276,8 @@ function main() {
 }
 
 // Executar script
-if (require.main === module) {
-    main();
+if (import.meta.url === `file://${process.argv[1]}`) {
+    main().catch(console.error);
 }
 
-module.exports = { main };
+export { main };
