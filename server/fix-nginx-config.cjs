@@ -39,14 +39,18 @@ function checkNginxConfig() {
       console.log('📄 Conteúdo atual:');
       console.log(config.substring(0, 800) + '...');
       
-      // Verificar se tem proxy_pass para /api/
-      if (config.includes('location /api/') && config.includes('proxy_pass http://127.0.0.1:3001')) {
-        console.log('✅ Configuração de proxy para /api/ encontrada e correta');
-      } else {
-        console.log('❌ Configuração de proxy para /api/ NÃO encontrada ou incorreta');
-        console.log('🔧 Criando configuração correta...');
-        createNginxConfig();
-      }
+      // Verificar se tem proxy_pass para /api (com ou sem barra final)
+       const hasApiLocation = config.includes('location /api/') || config.includes('location /api ');
+       const hasCorrectProxy = config.includes('proxy_pass http://localhost:3001') || config.includes('proxy_pass http://127.0.0.1:3001');
+       
+       if (hasApiLocation && hasCorrectProxy) {
+         console.log('✅ Configuração de proxy para /api encontrada e correta');
+         console.log('✅ Nginx já está configurado corretamente!');
+       } else {
+         console.log('❌ Configuração de proxy para /api NÃO encontrada ou incorreta');
+         console.log('🔧 Criando configuração correta...');
+         createNginxConfig();
+       }
       
       // Verificar se está habilitado
       if (fs.existsSync(siteEnabled)) {
