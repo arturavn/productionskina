@@ -829,24 +829,30 @@ router.get('/ml-products', requireAdmin, async (req, res) => {
     let actualTotal = totalProducts;
     
     if (useScanMode) {
-      // No modo scan, precisamos fazer múltiplas chamadas para simular paginação
-      console.log(`🔄 Modo scan ativado - buscando produtos além de 1000`);
+      // Modo scan otimizado - pular diretamente para a página desejada
+      const currentPage = Math.floor(parsedOffset / parsedLimit) + 1;
+      console.log(`🔄 Modo scan ativado - buscando página ${currentPage} diretamente`);
       
-      const targetItemsToSkip = parsedOffset;
-      let collectedItems = 0;
-      let allProductIds = [];
-      let hasMoreResults = true;
+      // Calcular quantas "páginas" de 50 itens precisamos pular
+      const itemsPerScanPage = 50;
+      const scanPagesToSkip = Math.floor(parsedOffset / itemsPerScanPage);
+      const remainingOffset = parsedOffset % itemsPerScanPage;
+      
+      console.log(`📊 Pulando ${scanPagesToSkip} páginas scan, offset restante: ${remainingOffset}`);
+      
       let scrollId = null;
+      let currentScanPage = 0;
+      let finalResults = [];
       
-      // Fazer chamadas sequenciais até coletar produtos suficientes
-      while (hasMoreResults && collectedItems < targetItemsToSkip + parsedLimit) {
+      // Navegar até a página desejada usando scroll_id
+      while (currentScanPage <= scanPagesToSkip) {
         try {
           const currentSearchParams = { ...searchParams };
           if (scrollId) {
             currentSearchParams.scroll_id = scrollId;
           }
           
-          console.log(`📄 Buscando produtos scan - coletados: ${collectedItems}, necessários: ${targetItemsToSkip + parsedLimit}`);
+          console.log(`📄 Navegando para página scan ${currentScanPage + 1}/${scanPagesToSkip + 1}`);
           
           const scanResponse = await axios.get(`https://api.mercadolibre.com/users/${account.seller_id}/items/search`, {
             params: currentSearchParams
@@ -857,17 +863,45 @@ router.get('/ml-products', requireAdmin, async (req, res) => {
           
           if (pageResults.length === 0) {
             console.log(`📄 Fim dos resultados no modo scan`);
-            hasMoreResults = false;
             break;
           }
           
-          allProductIds = allProductIds.concat(pageResults);
-          collectedItems += pageResults.length;
+          // Se chegamos na página desejada, coletar os dados
+          if (currentScanPage === scanPagesToSkip) {
+            // Aplicar offset restante e limit
+            const startIndex = remainingOffset;
+            const endIndex = Math.min(startIndex + parsedLimit, pageResults.length);
+            finalResults = pageResults.slice(startIndex, endIndex);
+            
+            console.log(`📋 Coletados ${finalResults.length} produtos da página ${currentScanPage + 1}`);
+            
+            // Se precisamos de mais itens, buscar próxima página
+            if (finalResults.length < parsedLimit && scrollId) {
+              console.log(`🔄 Buscando mais ${parsedLimit - finalResults.length} produtos da próxima página`);
+              
+              await new Promise(resolve => setTimeout(resolve, rateLimitDelay));
+              
+              const nextSearchParams = { ...searchParams };
+              nextSearchParams.scroll_id = scrollId;
+              
+              const nextResponse = await axios.get(`https://api.mercadolibre.com/users/${account.seller_id}/items/search`, {
+                params: nextSearchParams
+              });
+              
+              const nextResults = nextResponse.data.results || [];
+              const needed = parsedLimit - finalResults.length;
+              finalResults = finalResults.concat(nextResults.slice(0, needed));
+              
+              console.log(`📋 Total coletado: ${finalResults.length} produtos`);
+            }
+            
+            break;
+          }
           
-          console.log(`📊 Coletados ${collectedItems} produtos até agora`);
+          currentScanPage++;
           
-          // Rate limiting entre chamadas scan
-          if (hasMoreResults && collectedItems < targetItemsToSkip + parsedLimit) {
+          // Rate limiting apenas entre páginas que estamos pulando
+          if (currentScanPage <= scanPagesToSkip) {
             await new Promise(resolve => setTimeout(resolve, rateLimitDelay));
           }
           
@@ -876,18 +910,18 @@ router.get('/ml-products', requireAdmin, async (req, res) => {
             const retryDelay = rateLimitDelay * 6;
             console.log(`⚠️ Rate limiting no modo scan, aguardando ${retryDelay}ms...`);
             await new Promise(resolve => setTimeout(resolve, retryDelay));
-            continue; // Tentar novamente
+            continue;
           } else {
             throw scanError;
           }
         }
       }
       
-      // Extrair apenas os produtos da página solicitada
-      productIds = allProductIds.slice(targetItemsToSkip, targetItemsToSkip + parsedLimit);
-      actualTotal = Math.max(allProductIds.length, targetItemsToSkip + parsedLimit);
+      productIds = finalResults;
+      // Estimar total baseado na posição atual + buffer para páginas futuras
+      actualTotal = parsedOffset + finalResults.length + (scrollId ? 500 : 0);
       
-      console.log(`✅ Página scan: retornando ${productIds.length} produtos (${targetItemsToSkip} a ${targetItemsToSkip + parsedLimit - 1})`);
+      console.log(`✅ Página ${currentPage}: retornando ${productIds.length} produtos`);
       console.log(`📊 Total estimado no modo scan: ${actualTotal}`);
       
     } else {
