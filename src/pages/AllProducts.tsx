@@ -7,18 +7,17 @@ import ProductCard from '@/components/ProductCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useProducts, useCategories } from '@/hooks/useApi';
-import { Product, Category } from '@/services/api';
 
 const AllProducts = () => {
   const [selectedCategory, setSelectedCategory] = useState('todos');
 
   // Integração com API para produtos por categoria
-  const { data: allProductsData, isLoading } = useProducts({ limit: 6000 });
+  const { data: allProductsData, isLoading } = useProducts({ limit: 50 });
   const { data: categoriesData } = useCategories();
   
   // Organizar produtos por categoria
-  const allProducts = allProductsData?.products || [];
-  const apiCategories = categoriesData?.categories || [];
+  const allProducts = allProductsData?.data?.products || [];
+  const apiCategories = categoriesData?.data?.categories || [];
   
   // Filtrar apenas as categorias que correspondem ao painel administrativo
   const adminCategoryNames = ['motores', 'suspensao', 'freios', 'acessorios', 'transmissao', 'farois-eletrica'];
@@ -34,10 +33,10 @@ const AllProducts = () => {
     'farois-eletrica': 'Faróis e Elétrica'
   };
   
-  const productsByCategory = categories.reduce((acc: Record<string, Product[]>, category: Category) => {
-    acc[category.id] = allProducts.filter((product: Product) => product.category === category.name);
+  const productsByCategory = categories.reduce((acc: any, category: any) => {
+    acc[category.id] = allProducts.filter((product: any) => product.category === category.name);
     return acc;
-  }, {} as Record<string, Product[]>);
+  }, {});
 
   const getProductsToShow = () => {
     if (selectedCategory === 'todos') {
@@ -49,10 +48,10 @@ const AllProducts = () => {
   // Criar labels dinâmicos baseados nas categorias da API
   const categoryLabels = {
     todos: 'Todos',
-    ...categories.reduce((acc: Record<string, string>, category: Category) => {
+    ...categories.reduce((acc: any, category: any) => {
       acc[category.id] = categoryDisplayNames[category.name] || category.name;
       return acc;
-    }, {} as Record<string, string>)
+    }, {})
   };
 
   // Calcular número de colunas dinamicamente
@@ -85,10 +84,10 @@ const AllProducts = () => {
             </SelectTrigger>
             <SelectContent>
               {Object.entries(categoryLabels).map(([key, label]) => (
-              <SelectItem key={key} value={key}>
-                {String(label)}
-              </SelectItem>
-            ))}
+                <SelectItem key={key} value={key}>
+                  {label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -99,7 +98,7 @@ const AllProducts = () => {
             <TabsList className={`grid w-full mb-8`} style={{gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`}}>
               {Object.entries(categoryLabels).map(([key, label]) => (
                 <TabsTrigger key={key} value={key} className="text-sm">
-                  {String(label)}
+                  {label}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -116,14 +115,7 @@ const AllProducts = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {getProductsToShow().map((product) => (
-            <ProductCard 
-              key={product.id} 
-              id={product.id}
-              name={product.name}
-              brand={product.brand || ''}
-              category={product.category}
-              {...product}
-            />
+            <ProductCard key={product.id} {...product} />
           ))}
         </div>
       </main>
