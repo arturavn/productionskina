@@ -51,6 +51,7 @@ const MercadoLivreMLProducts: React.FC = () => {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [progressMessage, setProgressMessage] = useState<string>('');
+  const [pageInput, setPageInput] = useState('');
   const { toast } = useToast();
 
   // Carregamento inicial
@@ -203,6 +204,28 @@ const MercadoLivreMLProducts: React.FC = () => {
       offset: newOffset
     }));
     loadProducts(newOffset);
+  };
+
+  const handleGoToPage = () => {
+    const pageNumber = parseInt(pageInput);
+    if (isNaN(pageNumber) || pageNumber < 1 || pageNumber > totalPages) {
+      toast({
+        title: "Página inválida",
+        description: `Digite um número entre 1 e ${totalPages}`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const newOffset = (pageNumber - 1) * (pagination?.limit || 20);
+    handlePageChange(newOffset);
+    setPageInput('');
+  };
+
+  const handlePageInputKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleGoToPage();
+    }
   };
 
   const handleSelectProduct = (productId: string, checked: boolean) => {
@@ -601,8 +624,31 @@ const MercadoLivreMLProducts: React.FC = () => {
                 </PaginationContent>
               </Pagination>
               
-              <div className="text-center text-sm text-muted-foreground mt-2">
-                Página {currentPage} de {totalPages} • {pagination?.total || 0} produtos no total
+              <div className="flex items-center justify-center gap-4 mt-4">
+                <div className="text-sm text-muted-foreground">
+                  Página {currentPage} de {totalPages} • {pagination?.total || 0} produtos no total
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Ir para página:</span>
+                  <Input
+                    type="number"
+                    min="1"
+                    max={totalPages}
+                    value={pageInput}
+                    onChange={(e) => setPageInput(e.target.value)}
+                    onKeyPress={handlePageInputKeyPress}
+                    placeholder="Nº"
+                    className="w-16 h-8 text-center"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleGoToPage}
+                    disabled={!pageInput || loading}
+                    className="h-8 px-3"
+                  >
+                    Ir
+                  </Button>
+                </div>
               </div>
             </div>
           )}
