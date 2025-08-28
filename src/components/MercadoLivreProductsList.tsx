@@ -328,7 +328,7 @@ const MercadoLivreProductsList: React.FC = () => {
           </div>
 
           {/* Paginação */}
-          {totalPages > 1 && (
+          {pagination && pagination.total > 0 && (
             <div className="mt-6">
               <Pagination>
                 <PaginationContent>
