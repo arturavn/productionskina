@@ -12,7 +12,7 @@ const AllProducts = () => {
   const [selectedCategory, setSelectedCategory] = useState('todos');
 
   // Integração com API para produtos por categoria
-  const { data: allProductsData, isLoading } = useProducts({ limit: 6000 });
+  const { data: allProductsData, isLoading } = useProducts({ limit: 50 });
   const { data: categoriesData } = useCategories();
   
   // Organizar produtos por categoria
