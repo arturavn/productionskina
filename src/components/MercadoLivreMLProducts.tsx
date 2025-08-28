@@ -285,9 +285,9 @@ const MercadoLivreMLProducts: React.FC = () => {
         variant: errorCount > 0 ? 'destructive' : 'default'
       });
 
-      // Limpar seleção e recarregar produtos
+      // Limpar seleção e recarregar produtos mantendo a página atual
       setSelectedProducts(new Set());
-      await loadProducts();
+      await loadProducts(pagination?.offset);
     } catch (error) {
       toast({
         title: 'Erro',
