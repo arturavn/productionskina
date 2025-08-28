@@ -54,7 +54,7 @@ const MercadoLivreProductsList: React.FC = () => {
         });
         
         if (response.success) {
-          setProducts(response.products);
+          setProducts(response.products as Product[]);
           setPagination(response.pagination);
         }
       } catch (error) {
@@ -83,7 +83,33 @@ const MercadoLivreProductsList: React.FC = () => {
       
       if (response.success) {
         console.log('🔍 Produtos recebidos da API:', response.products);
-        setProducts(response.products);
+        setProducts(response.products as Product[]);
+        setPagination(response.pagination);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar produtos:', error);
+      toast({
+        title: 'Erro',
+        description: 'Falha ao carregar produtos',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadProductsWithOffset = async (offset: number) => {
+    try {
+      setLoading(true);
+      const response = await api.getMercadoLivreProducts({
+        limit: pagination?.limit || 50,
+        offset: offset,
+        search
+      });
+      
+      if (response.success) {
+        console.log('🔍 Produtos recebidos da API:', response.products);
+        setProducts(response.products as Product[]);
         setPagination(response.pagination);
       }
     } catch (error) {
@@ -161,9 +187,7 @@ const MercadoLivreProductsList: React.FC = () => {
 
   const handlePageChange = (newOffset: number) => {
     setPagination(prev => prev ? { ...prev, offset: newOffset } : { total: 0, limit: 50, offset: newOffset });
-    setTimeout(() => {
-      loadProducts();
-    }, 100);
+    loadProductsWithOffset(newOffset);
   };
 
   const handleGoToPage = () => {
