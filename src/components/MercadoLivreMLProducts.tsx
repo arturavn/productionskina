@@ -52,6 +52,7 @@ const MercadoLivreMLProducts: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [progressMessage, setProgressMessage] = useState<string>('');
   const [pageInput, setPageInput] = useState('');
+  const [hasUnloadedPage, setHasUnloadedPage] = useState(false);
   const { toast } = useToast();
 
   // Carregamento inicial
@@ -203,7 +204,18 @@ const MercadoLivreMLProducts: React.FC = () => {
       limit: prev?.limit || 100,
       offset: newOffset
     }));
+    setHasUnloadedPage(false);
     loadProducts(newOffset);
+  };
+
+  const handleSelectPage = (newOffset: number) => {
+    // Apenas atualizar a paginação local sem fazer requisição
+    setPagination(prev => ({
+      total: prev?.total || 0,
+      limit: prev?.limit || 100,
+      offset: newOffset
+    }));
+    setHasUnloadedPage(true);
   };
 
   const handleGoToPage = () => {
@@ -217,9 +229,21 @@ const MercadoLivreMLProducts: React.FC = () => {
       return;
     }
     
-    const newOffset = (pageNumber - 1) * (pagination?.limit || 20);
-    handlePageChange(newOffset);
+    const newOffset = (pageNumber - 1) * (pagination?.limit || 100);
+    handleSelectPage(newOffset);
     setPageInput('');
+    
+    toast({
+      title: "Página selecionada",
+      description: `Página ${pageNumber} selecionada. Clique em "Carregar Página" para buscar os produtos.`,
+      variant: "default",
+    });
+  };
+
+  const handleLoadSelectedPage = () => {
+    const currentOffset = pagination?.offset || 0;
+    setHasUnloadedPage(false);
+    loadProducts(currentOffset);
   };
 
   const handlePageInputKeyPress = (e: React.KeyboardEvent) => {
@@ -322,8 +346,8 @@ const MercadoLivreMLProducts: React.FC = () => {
     }
   };
 
-  const totalPages = Math.ceil((pagination?.total || 0) / (pagination?.limit || 20));
-  const currentPage = Math.floor((pagination?.offset || 0) / (pagination?.limit || 20)) + 1;
+  const totalPages = Math.ceil((pagination?.total || 0) / (pagination?.limit || 100));
+  const currentPage = Math.floor((pagination?.offset || 0) / (pagination?.limit || 100)) + 1;
 
   if (loading && products.length === 0) {
     return (
@@ -534,7 +558,7 @@ const MercadoLivreMLProducts: React.FC = () => {
                 <PaginationContent>
                   <PaginationItem>
                     <PaginationPrevious
-                      onClick={() => handlePageChange(Math.max(0, (pagination?.offset || 0) - (pagination?.limit || 20)))}
+                      onClick={() => handlePageChange(Math.max(0, (pagination?.offset || 0) - (pagination?.limit || 100)))}
                       className={(pagination?.offset || 0) === 0 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                     />
                   </PaginationItem>
@@ -576,7 +600,7 @@ const MercadoLivreMLProducts: React.FC = () => {
                     
                     // Páginas visíveis
                     for (let page = startPage; page <= endPage; page++) {
-                      const offset = (page - 1) * (pagination?.limit || 20);
+                      const offset = (page - 1) * (pagination?.limit || 100);
                       pages.push(
                         <PaginationItem key={page}>
                           <PaginationLink
@@ -599,7 +623,7 @@ const MercadoLivreMLProducts: React.FC = () => {
                         );
                       }
                       
-                      const lastPageOffset = (totalPages - 1) * (pagination?.limit || 20);
+                      const lastPageOffset = (totalPages - 1) * (pagination?.limit || 100);
                       pages.push(
                         <PaginationItem key={totalPages}>
                           <PaginationLink
@@ -617,8 +641,8 @@ const MercadoLivreMLProducts: React.FC = () => {
                   
                   <PaginationItem>
                     <PaginationNext
-                      onClick={() => handlePageChange((pagination?.offset || 0) + (pagination?.limit || 20))}
-                      className={(pagination?.offset || 0) + (pagination?.limit || 20) >= (pagination?.total || 0) ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      onClick={() => handlePageChange((pagination?.offset || 0) + (pagination?.limit || 100))}
+                      className={(pagination?.offset || 0) + (pagination?.limit || 100) >= (pagination?.total || 0) ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                     />
                   </PaginationItem>
                 </PaginationContent>
@@ -627,6 +651,11 @@ const MercadoLivreMLProducts: React.FC = () => {
               <div className="flex items-center justify-center gap-4 mt-4">
                 <div className="text-sm text-muted-foreground">
                   Página {currentPage} de {totalPages} • {pagination?.total || 0} produtos no total
+                  {hasUnloadedPage && (
+                    <span className="ml-2 text-amber-600 font-medium">
+                      (Página selecionada - clique em "Carregar Página" para buscar)
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">Ir para página:</span>
@@ -645,8 +674,17 @@ const MercadoLivreMLProducts: React.FC = () => {
                     onClick={handleGoToPage}
                     disabled={!pageInput || loading}
                     className="h-8 px-3"
+                    variant="outline"
                   >
-                    Ir
+                    Selecionar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleLoadSelectedPage}
+                    disabled={loading}
+                    className={`h-8 px-3 ${hasUnloadedPage ? 'bg-amber-600 hover:bg-amber-700 text-white' : ''}`}
+                  >
+                    Carregar Página
                   </Button>
                 </div>
               </div>
