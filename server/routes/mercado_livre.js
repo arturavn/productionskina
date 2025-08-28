@@ -760,13 +760,43 @@ router.get('/ml-products', requireAdmin, async (req, res) => {
     const totalProducts = totalResponse.data.paging?.total || 0;
     console.log(`📊 Total de produtos disponíveis: ${totalProducts}`);
     
+    // Validar e ajustar parâmetros para a API do Mercado Livre
+    const parsedLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 200); // ML aceita max 200
+    const parsedOffset = Math.max(parseInt(offset) || 0, 0);
+    
+    // Verificar se o offset não excede o total de produtos disponíveis
+    if (parsedOffset >= totalProducts) {
+      console.log(`⚠️ Offset ${parsedOffset} excede total de produtos ${totalProducts}`);
+      return res.json({
+        success: true,
+        products: [],
+        pagination: {
+          total: totalProducts,
+          limit: parsedLimit,
+          offset: parsedOffset,
+          totalPages: Math.ceil(totalProducts / parsedLimit),
+          currentPage: Math.floor(parsedOffset / parsedLimit) + 1,
+          hasNextPage: false,
+          hasPrevPage: parsedOffset > 0
+        },
+        stats: {
+          totalProducts: 0,
+          activeProducts: 0,
+          inactiveProducts: 0,
+          currentPageType: 'active'
+        }
+      });
+    }
+    
     // Agora buscar os produtos ATIVOS da página atual
     const searchParams = {
       access_token: account.access_token,
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      limit: parsedLimit,
+      offset: parsedOffset,
       status: 'active' // Filtrar apenas produtos ativos
     };
+    
+    console.log(`🔍 Parâmetros validados para ML API:`, { limit: parsedLimit, offset: parsedOffset, totalProducts });
     
     if (search && search.trim()) {
       searchParams.q = search.trim();
@@ -860,8 +890,8 @@ router.get('/ml-products', requireAdmin, async (req, res) => {
     }
     
     // Produtos já vêm filtrados como ativos da API do ML
-    const requestedLimit = parseInt(limit);
-    const requestedOffset = parseInt(offset);
+    const requestedLimit = parsedLimit;
+    const requestedOffset = parsedOffset;
     
     console.log(`✅ Produtos ativos processados com sucesso: ${activeProducts.length} produtos`);
     console.log(`📄 Página atual: produtos ${requestedOffset + 1} a ${requestedOffset + activeProducts.length} de ${totalProducts} total (apenas ativos)`);
