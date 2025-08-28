@@ -746,6 +746,9 @@ router.get('/ml-products', requireAdmin, async (req, res) => {
       // Vamos simular a paginação fazendo múltiplas chamadas
       const scanPage = Math.floor(parsedOffset / parsedLimit);
       console.log(`📄 Página scan calculada: ${scanPage}`);
+      // No modo scan, estimamos o total como pelo menos o offset atual
+      totalProducts = Math.max(1000, parsedOffset + parsedLimit);
+      console.log(`📊 Total estimado para modo scan: ${totalProducts}`);
     } else {
       console.log(`🔍 Usando paginação normal para offset ${parsedOffset} (< 1000)`);
       searchParams.offset = parsedOffset;
@@ -785,7 +788,7 @@ router.get('/ml-products', requireAdmin, async (req, res) => {
       console.log(`📊 Total de produtos disponíveis: ${totalProducts}`);
       
       // Verificar se o offset não excede o total de produtos disponíveis (apenas no modo normal)
-      if (parsedOffset >= totalProducts && totalProducts < 1000) {
+      if (parsedOffset >= totalProducts) {
         console.log(`⚠️ Offset ${parsedOffset} excede total de produtos ${totalProducts}`);
         return res.json({
           success: true,
@@ -821,10 +824,6 @@ router.get('/ml-products', requireAdmin, async (req, res) => {
       useScanMode, 
       searchType: searchParams.search_type || 'normal' 
     });
-    
-    if (search && search.trim()) {
-      searchParams.q = search.trim();
-    }
     
     let productIds = [];
     let actualTotal = totalProducts;
