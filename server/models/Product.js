@@ -87,11 +87,25 @@ class Product {
       params.push(`%${filters.brand}%`);
     }
 
-    // Filtro por busca (nome, descrição, marca)
+    // Filtro por busca (nome, descrição, marca) - busca flexível por palavras e insensível a acentos
     if (filters.search) {
-      paramCount++;
-      sql += ` AND (p.name ILIKE $${paramCount} OR p.description ILIKE $${paramCount} OR p.brand ILIKE $${paramCount})`;
-      params.push(`%${filters.search}%`);
+      const searchTerms = filters.search.trim().split(/\s+/).filter(term => term.length > 0);
+      if (searchTerms.length > 0) {
+        const searchConditions = [];
+        
+        searchTerms.forEach(term => {
+          paramCount++;
+          // Usar UNACCENT para ignorar acentos, com fallback para ILIKE normal
+          searchConditions.push(`(
+            COALESCE(UNACCENT(p.name), p.name) ILIKE UNACCENT($${paramCount}) OR 
+            COALESCE(UNACCENT(p.description), p.description) ILIKE UNACCENT($${paramCount}) OR 
+            COALESCE(UNACCENT(p.brand), p.brand) ILIKE UNACCENT($${paramCount})
+          )`);
+          params.push(`%${term}%`);
+        });
+        
+        sql += ` AND (${searchConditions.join(' AND ')})`;
+      }
     }
 
     // Filtro por preço mínimo
@@ -185,9 +199,23 @@ class Product {
       }
 
       if (filters.search) {
-        paramCount++;
-        sql += ` AND (p.name ILIKE $${paramCount} OR p.description ILIKE $${paramCount} OR p.brand ILIKE $${paramCount})`;
-        params.push(`%${filters.search}%`);
+        const searchTerms = filters.search.trim().split(/\s+/).filter(term => term.length > 0);
+        if (searchTerms.length > 0) {
+          const searchConditions = [];
+          
+          searchTerms.forEach(term => {
+            paramCount++;
+            // Usar UNACCENT para ignorar acentos, com fallback para ILIKE normal
+            searchConditions.push(`(
+              COALESCE(UNACCENT(p.name), p.name) ILIKE UNACCENT($${paramCount}) OR 
+              COALESCE(UNACCENT(p.description), p.description) ILIKE UNACCENT($${paramCount}) OR 
+              COALESCE(UNACCENT(p.brand), p.brand) ILIKE UNACCENT($${paramCount})
+            )`);
+            params.push(`%${term}%`);
+          });
+          
+          sql += ` AND (${searchConditions.join(' AND ')})`;
+        }
       }
 
       if (filters.minPrice) {
