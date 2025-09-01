@@ -24,6 +24,7 @@ import PaymentFailure from "./pages/PaymentFailure";
 import CheckoutPending from "./pages/CheckoutPending";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Orders from "./pages/Orders";
+
 import MercadoLivrePage from "./app/admin/mercado-livre/page";
 
 const queryClient = new QueryClient({
@@ -76,6 +77,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/shipping-test" element={<ShippingTest />} />
+
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/payment-failure" element={<PaymentFailure />} />
             <Route path="/payment-pending" element={<CheckoutPending />} />

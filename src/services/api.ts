@@ -296,13 +296,16 @@ class ApiService {
     
     const query = searchParams.toString();
     return this.publicRequest<{
-      products: Product[];
-      pagination: {
-        currentPage: number;
-        totalPages: number;
-        totalProducts: number;
-        hasNext: boolean;
-        hasPrev: boolean;
+      success: boolean;
+      data: {
+        products: Product[];
+        pagination: {
+          currentPage: number;
+          totalPages: number;
+          totalProducts: number;
+          hasNext: boolean;
+          hasPrev: boolean;
+        };
       };
     }>(`/products${query ? `?${query}` : ''}`);
   }

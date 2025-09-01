@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingCart, User, Menu, X, ChevronDown, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
-import SearchDropdown from '@/components/SearchDropdown';
+import SearchBar from '@/components/SearchBar';
 import ThemeToggle from '@/components/ThemeToggle';
 import {
   DropdownMenu,
@@ -203,7 +203,7 @@ const Header = () => {
 
           {/* Search Bar - Desktop */}
           <div className="hidden md:flex flex-1 max-w-lg mx-8">
-            <SearchDropdown />
+            <SearchBar />
           </div>
 
           {/* Right Section */}
@@ -300,7 +300,7 @@ const Header = () => {
 
         {/* Mobile Search - Always visible on mobile */}
         <div className="md:hidden pb-4">
-          <SearchDropdown />
+          <SearchBar />
         </div>
 
         {/* Mobile Menu Overlay */}

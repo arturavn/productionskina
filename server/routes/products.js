@@ -29,7 +29,7 @@ router.get('/', async (req, res) => {
       inStock: req.query.inStock === 'true' ? true : req.query.inStock === 'false' ? false : undefined,
       search: req.query.search,
       page: parseInt(req.query.page) || 1,
-      limit: parseInt(req.query.limit) || 12,
+      limit: parseInt(req.query.limit) || 50,
       sortBy: req.query.sortBy || 'name',
       sortOrder: req.query.sortOrder || 'asc'
     };
@@ -82,6 +82,13 @@ router.get('/', async (req, res) => {
         return productData;
       })
     );
+    
+    // Desabilitar cache para evitar problemas com HTTP 304
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
     
     res.json({
       success: true,

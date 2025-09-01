@@ -35,20 +35,32 @@ export const useAdminProducts = (params?: {
   sortOrder?: string;
 }) => {
   const token = localStorage.getItem('auth_token');
-  console.log('🔍 useAdminProducts - Token presente:', !!token);
-  console.log('🔍 useAdminProducts - Params:', params);
+  const [debouncedSearch, setDebouncedSearch] = useState(params?.search || '');
+  
+  // Debounce apenas para o campo de busca
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(params?.search || '');
+    }, 300); // 300ms de delay
+
+    return () => clearTimeout(timer);
+  }, [params?.search]);
+  
+  // Criar parâmetros finais com busca debounced
+  const finalParams = {
+    ...params,
+    search: debouncedSearch
+  };
   
   return useQuery({
-    queryKey: ['admin-products', params],
+    queryKey: ['admin-products', finalParams],
     queryFn: async () => {
-      console.log('🚀 Executando queryFn para admin-products');
-      const result = await api.getAdminProducts(params);
-      console.log('✅ Resultado da API admin-products:', result);
+      const result = await api.getAdminProducts(finalParams);
       return result;
     },
     enabled: !!token, // Só executa se houver token
     staleTime: 0, // Sem cache para garantir dados atualizados na paginação
-
+    refetchOnWindowFocus: false, // Evita refetch desnecessário
   });
 };
 
@@ -1185,6 +1197,9 @@ export const useSetDefaultAddress = () => {
 // Hook para busca de produtos com debounce
 export const useProductSearch = (searchQuery = '', delay = 500) => {
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
+  const [results, setResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -1194,20 +1209,37 @@ export const useProductSearch = (searchQuery = '', delay = 500) => {
     return () => clearTimeout(timer);
   }, [searchQuery, delay]);
   
-  const shouldFetch = debouncedQuery.length > 0;
-  
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['products', { search: debouncedQuery, limit: 20 }],
-    queryFn: () => api.getProducts({ search: debouncedQuery, limit: 20 }),
-    enabled: shouldFetch,
-    staleTime: 5 * 60 * 1000,
-  });
+  useEffect(() => {
+    if (debouncedQuery.trim().length === 0) {
+      setResults([]);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
+    
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const result = await api.getProducts({ search: debouncedQuery });
+        setResults(result?.data?.products || []);
+      } catch (err) {
+        setError(err);
+        setResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchProducts();
+  }, [debouncedQuery]);
   
   return {
-    results: data?.products || [],
-    isLoading: isLoading && shouldFetch,
+    results,
+    isLoading,
     error,
-    hasResults: (data?.products?.length || 0) > 0,
+    hasResults: results.length > 0,
   };
 };
 

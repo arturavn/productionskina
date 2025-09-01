@@ -1151,7 +1151,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     setProductsPage(1);
     setAccumulatedProducts([]);
-  }, [productSearchTerm, productCategoryFilter, productsSortBy, productsSortOrder]);
+  }, [productSearchTerm, productCategoryFilter, productsSortBy, productsSortOrder, productStockFilter, productFeaturedFilter]);
   const recentOrders = ordersData?.orders?.slice(0, 5) || [];
   
   // Filtrar produtos localmente (além dos filtros da API) - usar produtos acumulados

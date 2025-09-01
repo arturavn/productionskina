@@ -12,11 +12,13 @@ const AllProducts = () => {
   const [selectedCategory, setSelectedCategory] = useState('todos');
 
   // Integração com API para produtos por categoria
-  const { data: allProductsData, isLoading } = useProducts({ limit: 50 });
+  const { data: allProductsData, isLoading } = useProducts({ limit: 100 });
+  const { data: totalProductsData } = useProducts({ limit: 999999 }); // Para obter o total real
   const { data: categoriesData } = useCategories();
   
   // Organizar produtos por categoria
   const allProducts = allProductsData?.data?.products || [];
+  const totalProducts = totalProductsData?.data?.products || [];
   const apiCategories = categoriesData?.data?.categories || [];
   
   // Filtrar apenas as categorias que correspondem ao painel administrativo
@@ -35,6 +37,12 @@ const AllProducts = () => {
   
   const productsByCategory = categories.reduce((acc: any, category: any) => {
     acc[category.id] = allProducts.filter((product: any) => product.category === category.name);
+    return acc;
+  }, {});
+
+  // Calcular totais reais por categoria usando todos os produtos
+  const totalProductsByCategory = categories.reduce((acc: any, category: any) => {
+    acc[category.id] = totalProducts.filter((product: any) => product.category === category.name);
     return acc;
   }, {});
 
@@ -108,8 +116,10 @@ const AllProducts = () => {
         {/* Contador de produtos e grid */}
         <div className="mb-6">
           <p className="text-muted-foreground">
-            {getProductsToShow().length} produto(s) encontrado(s)
-            {selectedCategory !== 'todos' && ` na categoria ${categoryLabels[selectedCategory] || 'Categoria'}`}
+            {selectedCategory === 'todos' 
+              ? `${totalProducts.length} produto(s) encontrado(s)` 
+              : `${totalProductsByCategory[selectedCategory]?.length || 0} produto(s) encontrado(s) na categoria ${categoryLabels[selectedCategory] || 'Categoria'}`
+            }
           </p>
         </div>
         

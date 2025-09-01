@@ -13,94 +13,76 @@ const SearchResults = () => {
   
   const { results, isLoading, error, hasResults } = useProductSearch(query);
 
+
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
       <main className="container mx-auto px-4 py-8 pt-32 lg:pt-36">
-        {/* Header da Busca */}
-        <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg px-4 md:px-6 py-8 md:py-12 shadow-sm border dark:border-gray-700">
-          <div className="flex items-center mb-4">
-            <Search className="w-6 h-6 mr-3 text-skina-green" />
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground">
-              Resultados da Busca
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Search className="h-6 w-6 text-primary" />
+            <h1 className="text-2xl font-bold text-foreground">
+              Resultados da busca
             </h1>
           </div>
-          <div className="w-16 h-1 bg-skina-green mb-4 md:mb-6"></div>
+          
           {query && (
-            <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-              Você pesquisou por: <span className="font-semibold text-foreground">"{
-                query
-              }"</span>
+            <p className="text-muted-foreground">
+              Mostrando resultados para: <span className="font-semibold text-foreground">"{query}"</span>
             </p>
           )}
         </div>
 
-        {/* Conteúdo dos Resultados */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-6">
-          {isLoading ? (
-            <div className="text-center py-16">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-skina-green mx-auto mb-4"></div>
-              <p className="text-muted-foreground dark:text-gray-300">Buscando produtos...</p>
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <AlertCircle className="h-16 w-16 text-destructive mb-4" />
+            <h2 className="text-xl font-semibold text-foreground mb-2">Erro na busca</h2>
+            <p className="text-muted-foreground text-center max-w-md">
+              Ocorreu um erro ao buscar os produtos. Tente novamente.
+            </p>
+          </div>
+        )}
+
+
+
+        {/* Results */}
+        {!isLoading && !error && hasResults && (
+          <div>
+            <p className="text-sm text-muted-foreground mb-6">
+              {results.length} produto{results.length !== 1 ? 's' : ''} encontrado{results.length !== 1 ? 's' : ''}
+            </p>
+            
+
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {results.map((product) => (
+                <ProductCard key={product.id} {...product} />
+              ))}
             </div>
-          ) : error ? (
-            <div className="text-center py-16">
-              <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-foreground mb-2">
-                Erro na busca
-              </h3>
-              <p className="text-muted-foreground dark:text-gray-300">
-                Ocorreu um erro ao buscar os produtos. Tente novamente.
-              </p>
-            </div>
-          ) : !query ? (
-            <div className="text-center py-16">
-              <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-foreground mb-2">
-                Digite algo para buscar
-              </h3>
-              <p className="text-muted-foreground dark:text-gray-300">
-                Use a barra de busca acima para encontrar produtos.
-              </p>
-            </div>
-          ) : hasResults ? (
-            <>
-              <div className="mb-6">
-                <p className="text-muted-foreground dark:text-gray-300">
-                  {results.length} produto(s) encontrado(s)
-                </p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {results.map((product) => (
-                  <ProductCard key={product.id} {...product} />
-                ))}
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-16">
-              <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-foreground mb-2">
-                Nenhum produto encontrado
-              </h3>
-              <p className="text-muted-foreground dark:text-gray-300 mb-6">
-                Não encontramos produtos que correspondam à sua busca por "{
-                  query
-                }".
-              </p>
-              <div className="text-left max-w-md mx-auto">
-                <p className="text-sm text-muted-foreground dark:text-gray-400 mb-2">
-                  Dicas para melhorar sua busca:
-                </p>
-                <ul className="text-sm text-muted-foreground dark:text-gray-400 space-y-1">
-                  <li>• Verifique a ortografia das palavras</li>
-                  <li>• Use termos mais gerais</li>
-                  <li>• Tente palavras-chave diferentes</li>
-                  <li>• Use menos palavras na busca</li>
-                </ul>
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* No Results */}
+        {!isLoading && !error && !hasResults && query && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Search className="h-16 w-16 text-muted-foreground mb-4" />
+            <h2 className="text-xl font-semibold text-foreground mb-2">Nenhum produto encontrado</h2>
+            <p className="text-muted-foreground text-center max-w-md">
+              Não encontramos produtos que correspondam à sua busca por "{query}".
+              Tente usar termos diferentes ou mais gerais.
+            </p>
+          </div>
+        )}
       </main>
 
       <Footer />
