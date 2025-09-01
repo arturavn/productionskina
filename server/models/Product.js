@@ -95,16 +95,16 @@ class Product {
         
         searchTerms.forEach(term => {
           paramCount++;
-          // Usar UNACCENT para ignorar acentos, com fallback para ILIKE normal
+          // Busca simples com ILIKE (sem UNACCENT para desenvolvimento local)
           searchConditions.push(`(
-            COALESCE(UNACCENT(p.name), p.name) ILIKE UNACCENT($${paramCount}) OR 
-            COALESCE(UNACCENT(p.description), p.description) ILIKE UNACCENT($${paramCount}) OR 
-            COALESCE(UNACCENT(p.brand), p.brand) ILIKE UNACCENT($${paramCount})
+            p.name ILIKE $${paramCount} OR 
+            p.description ILIKE $${paramCount} OR 
+            p.brand ILIKE $${paramCount}
           )`);
           params.push(`%${term}%`);
         });
         
-        sql += ` AND (${searchConditions.join(' AND ')})`;
+        sql += ` AND (${searchConditions.join(' OR ')})`;
       }
     }
 
@@ -205,16 +205,16 @@ class Product {
           
           searchTerms.forEach(term => {
             paramCount++;
-            // Usar UNACCENT para ignorar acentos, com fallback para ILIKE normal
+            // Busca simples com ILIKE (sem UNACCENT para desenvolvimento local)
             searchConditions.push(`(
-              COALESCE(UNACCENT(p.name), p.name) ILIKE UNACCENT($${paramCount}) OR 
-              COALESCE(UNACCENT(p.description), p.description) ILIKE UNACCENT($${paramCount}) OR 
-              COALESCE(UNACCENT(p.brand), p.brand) ILIKE UNACCENT($${paramCount})
+              p.name ILIKE $${paramCount} OR 
+              p.description ILIKE $${paramCount} OR 
+              p.brand ILIKE $${paramCount}
             )`);
             params.push(`%${term}%`);
           });
           
-          sql += ` AND (${searchConditions.join(' AND ')})`;
+          sql += ` AND (${searchConditions.join(' OR ')})`;
         }
       }
 
