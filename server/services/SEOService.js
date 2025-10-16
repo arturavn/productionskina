@@ -257,24 +257,51 @@ class SEOService {
   // SEO padrão para home e outras páginas
   getDefaultSEO() {
     return {
-      title: 'Skina Ecopeças - Autopeças Originais com até 50% de Desconto',
-      description: 'Autopeças originais com até 50% de desconto. Motores, faróis, suspensão, freios e mais. Peças para Jeep, Ford, Chevrolet e outras marcas. Qualidade garantida e entrega rápida.',
-      keywords: 'autopeças, peças automotivas, motores, faróis, suspensão, freios, skina ecopeças, peças jeep, peças ford, peças chevrolet, autopeças com desconto',
-      ogTitle: 'Skina Ecopeças - Autopeças Originais com Desconto',
-      ogDescription: 'Autopeças originais com até 50% de desconto. Motores, faróis, suspensão, freios e mais.',
+      title: 'Skina Eco Peças - Referência em Peças Automotivas no Setor H Norte | Peças Jeep, Mopar, Fiat, Chevrolet, Volkswagen e RAM',
+      description: 'Na Skina Eco Peças, somos referência em peças automotivas no Setor H Norte, oferecendo produtos originais e acessórios de alta qualidade. Trabalhamos com as melhores marcas: Jeep, Mopar, Fiat, Chevrolet, Volkswagen e RAM. Garantimos procedência, durabilidade e atendimento especializado, com entrega rápida e suporte técnico completo para todo o Brasil.',
+      keywords: 'skina eco peças, autopeças setor h norte, peças jeep, peças mopar, peças fiat, peças chevrolet, peças volkswagen, peças ram, autopeças originais, peças automotivas brasília, entrega rápida brasil, suporte técnico autopeças, procedência garantida, durabilidade autopeças',
+      ogTitle: 'Skina Eco Peças - Referência em Peças Automotivas | Melhores Marcas',
+      ogDescription: 'Referência em peças automotivas no Setor H Norte. Produtos originais das melhores marcas: Jeep, Mopar, Fiat, Chevrolet, Volkswagen e RAM. Entrega rápida para todo o Brasil.',
       ogImage: 'https://skinaecopecas.com.br/og-default.jpg',
       ogUrl: 'https://skinaecopecas.com.br',
       structuredData: {
         "@context": "https://schema.org/",
         "@type": "Organization",
-        "name": "Skina Ecopeças",
-        "description": "Loja de autopeças originais com desconto",
+        "name": "Skina Eco Peças",
+        "description": "Referência em peças automotivas no Setor H Norte, oferecendo produtos originais e acessórios de alta qualidade das melhores marcas do mercado",
         "url": "https://skinaecopecas.com.br",
         "logo": "https://skinaecopecas.com.br/logo.png",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Setor H Norte",
+          "addressLocality": "Brasília",
+          "addressRegion": "DF",
+          "addressCountry": "BR"
+        },
         "contactPoint": {
           "@type": "ContactPoint",
           "contactType": "customer service",
-          "availableLanguage": "Portuguese"
+          "availableLanguage": "Portuguese",
+          "telephone": "+55-61-99850-1771"
+        },
+        "brand": ["Jeep", "Mopar", "Fiat", "Chevrolet", "Volkswagen", "RAM"],
+        "serviceArea": {
+          "@type": "Country",
+          "name": "Brasil"
+        },
+        "hasOfferCatalog": {
+          "@type": "OfferCatalog",
+          "name": "Catálogo de Autopeças",
+          "itemListElement": [
+            {
+              "@type": "Offer",
+              "itemOffered": {
+                "@type": "Product",
+                "name": "Peças Automotivas Originais",
+                "category": "Autopeças"
+              }
+            }
+          ]
         }
       }
     };
