@@ -51,20 +51,43 @@
         "@type": "Country",
         "name": "Brasil"
       },
-      "hasOfferCatalog": {
-        "@type": "OfferCatalog",
-        "name": "Catálogo de Autopeças",
-        "itemListElement": [
-          {
-            "@type": "Offer",
-            "itemOffered": {
-              "@type": "Product",
-              "name": "Peças Automotivas Originais",
-              "category": "Autopeças"
-            }
-          }
-        ]
-      },
+      "hasOfferCatalog": { 
+         "@type": "OfferCatalog", 
+         "name": "Catálogo de Autopeças", 
+         "itemListElement": [ 
+           { 
+             "@type": "Offer", 
+             "availability": "https://schema.org/InStock",
+             "price": "50.00",
+             "priceCurrency": "BRL",
+             "priceValidUntil": "2025-12-31",
+             "seller": {
+               "@type": "Organization",
+               "name": "Skina Eco Peças"
+             },
+             "itemOffered": { 
+               "@type": "Product", 
+               "name": "Peças Automotivas Originais", 
+               "category": "Automotive Parts",
+               "brand": ["Jeep", "Mopar", "Fiat", "Chevrolet", "Volkswagen", "RAM"],
+               "offers": {
+                 "@type": "Offer",
+                 "availability": "https://schema.org/InStock",
+                 "price": "50.00",
+                 "priceCurrency": "BRL",
+                 "priceValidUntil": "2025-12-31"
+               },
+               "aggregateRating": {
+                 "@type": "AggregateRating",
+                 "ratingValue": "4.8",
+                 "reviewCount": "127",
+                 "bestRating": "5",
+                 "worstRating": "1"
+               }
+             } 
+           } 
+         ] 
+       },
       "aggregateRating": {
         "@type": "AggregateRating",
         "ratingValue": "4.8",
