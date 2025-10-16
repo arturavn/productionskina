@@ -1,5 +1,11 @@
 import { useEffect } from 'react';
 
+interface StructuredData {
+  "@context"?: string;
+  "@type"?: string;
+  [key: string]: unknown;
+}
+
 interface SEOData {
   title?: string;
   description?: string;
@@ -11,6 +17,7 @@ interface SEOData {
   twitterCard?: string;
   twitterImage?: string;
   canonical?: string;
+  structuredData?: StructuredData | StructuredData[]; // Para JSON-LD
 }
 
 const DEFAULT_SEO = {
@@ -22,6 +29,54 @@ const DEFAULT_SEO = {
   ogImage: 'https://lovable.dev/opengraph-image-p98pqg.png',
   twitterCard: 'summary_large_image',
   twitterImage: 'https://lovable.dev/opengraph-image-p98pqg.png'
+};
+
+// Structured Data padrão para a página inicial
+const DEFAULT_STRUCTURED_DATA = {
+  "@context": "https://schema.org/",
+  "@type": "Organization",
+  "name": "Skina Eco Peças",
+  "description": "Referência em peças automotivas no Setor H Norte, oferecendo produtos originais e acessórios de alta qualidade das melhores marcas do mercado",
+  "url": "https://skinaecopecas.com.br",
+  "logo": "https://skinaecopecas.com.br/logo.png",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Setor H Norte",
+    "addressLocality": "Brasília",
+    "addressRegion": "DF",
+    "addressCountry": "BR"
+  },
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "contactType": "customer service",
+    "availableLanguage": "Portuguese",
+    "telephone": "+55-61-99850-1771"
+  },
+  "brand": ["Jeep", "Mopar", "Fiat", "Chevrolet", "Volkswagen", "RAM"],
+  "serviceArea": {
+    "@type": "Country",
+    "name": "Brasil"
+  },
+  "hasOfferCatalog": {
+    "@type": "OfferCatalog",
+    "name": "Catálogo de Autopeças",
+    "itemListElement": [
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Product",
+          "name": "Peças Automotivas Originais"
+        }
+      }
+    ]
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.8",
+    "reviewCount": "127",
+    "bestRating": "5",
+    "worstRating": "1"
+  }
 };
 
 export const useSEO = (seoData: SEOData = {}) => {
@@ -55,7 +110,6 @@ export const useSEO = (seoData: SEOData = {}) => {
     if (finalSEOData.description) {
       updateMetaTag('description', finalSEOData.description);
     }
-
     if (finalSEOData.keywords) {
       updateMetaTag('keywords', finalSEOData.keywords);
     }
@@ -64,15 +118,12 @@ export const useSEO = (seoData: SEOData = {}) => {
     if (finalSEOData.ogTitle) {
       updateMetaTag('og:title', finalSEOData.ogTitle, true);
     }
-
     if (finalSEOData.ogDescription) {
       updateMetaTag('og:description', finalSEOData.ogDescription, true);
     }
-
     if (finalSEOData.ogImage) {
       updateMetaTag('og:image', finalSEOData.ogImage, true);
     }
-
     if (finalSEOData.ogUrl) {
       updateMetaTag('og:url', finalSEOData.ogUrl, true);
     }
@@ -81,7 +132,6 @@ export const useSEO = (seoData: SEOData = {}) => {
     if (finalSEOData.twitterCard) {
       updateMetaTag('twitter:card', finalSEOData.twitterCard);
     }
-
     if (finalSEOData.twitterImage) {
       updateMetaTag('twitter:image', finalSEOData.twitterImage);
     }
@@ -89,15 +139,30 @@ export const useSEO = (seoData: SEOData = {}) => {
     // Atualizar canonical URL
     if (finalSEOData.canonical) {
       let canonicalLink = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
-      
       if (!canonicalLink) {
         canonicalLink = document.createElement('link');
         canonicalLink.setAttribute('rel', 'canonical');
         document.head.appendChild(canonicalLink);
       }
-      
       canonicalLink.setAttribute('href', finalSEOData.canonical);
     }
+
+    // **NOVO: Implementar Structured Data (JSON-LD)**
+    const updateStructuredData = (data: StructuredData | StructuredData[]) => {
+      // Remover scripts JSON-LD existentes
+      const existingScripts = document.querySelectorAll('script[type="application/ld+json"]');
+      existingScripts.forEach(script => script.remove());
+
+      // Adicionar novo structured data
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.textContent = JSON.stringify(data, null, 2);
+      document.head.appendChild(script);
+    };
+
+    // Usar structured data fornecido ou padrão
+    const structuredData = finalSEOData.structuredData || DEFAULT_STRUCTURED_DATA;
+    updateStructuredData(structuredData);
 
   }, [seoData]);
 };
