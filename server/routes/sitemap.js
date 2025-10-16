@@ -12,8 +12,15 @@ router.get('/sitemap.xml', async (req, res) => {
     const staticUrls = [
       { url: baseUrl, priority: '1.0', changefreq: 'daily' },
       { url: `${baseUrl}/produtos`, priority: '0.9', changefreq: 'daily' },
-      { url: `${baseUrl}/sobre`, priority: '0.5', changefreq: 'monthly' },
-      { url: `${baseUrl}/contato`, priority: '0.5', changefreq: 'monthly' }
+      { url: `${baseUrl}/sobre`, priority: '0.8', changefreq: 'monthly' },
+      { url: `${baseUrl}/contato`, priority: '0.7', changefreq: 'monthly' },
+      // Páginas de marcas importantes para SEO
+      { url: `${baseUrl}/autopecas/marca/jeep`, priority: '0.8', changefreq: 'weekly' },
+      { url: `${baseUrl}/autopecas/marca/mopar`, priority: '0.8', changefreq: 'weekly' },
+      { url: `${baseUrl}/autopecas/marca/fiat`, priority: '0.8', changefreq: 'weekly' },
+      { url: `${baseUrl}/autopecas/marca/chevrolet`, priority: '0.8', changefreq: 'weekly' },
+      { url: `${baseUrl}/autopecas/marca/volkswagen`, priority: '0.8', changefreq: 'weekly' },
+      { url: `${baseUrl}/autopecas/marca/ram`, priority: '0.8', changefreq: 'weekly' }
     ];
 
     // Buscar todas as categorias
@@ -22,9 +29,9 @@ router.get('/sitemap.xml', async (req, res) => {
     );
     const categories = categoriesResult.rows;
 
-    // Buscar todos os produtos
+    // Buscar todos os produtos com slug para URLs amigáveis
     const productsResult = await query(
-      'SELECT id, updated_at FROM products WHERE active = true'
+      'SELECT id, slug, name, updated_at FROM products WHERE active = true AND slug IS NOT NULL'
     );
     const products = productsResult.rows;
 
@@ -58,7 +65,7 @@ router.get('/sitemap.xml', async (req, res) => {
   </url>`;
     });
 
-    // Adicionar produtos
+    // Adicionar produtos (usando slug para URLs amigáveis)
     products.forEach(product => {
       const lastmod = product.updated_at 
         ? new Date(product.updated_at).toISOString().split('T')[0]
@@ -66,7 +73,7 @@ router.get('/sitemap.xml', async (req, res) => {
       
       sitemap += `
   <url>
-    <loc>${baseUrl}/autopecas/produto/${product.id}</loc>
+    <loc>${baseUrl}/autopecas/produto/${product.slug}</loc>
     <priority>0.7</priority>
     <changefreq>weekly</changefreq>
     <lastmod>${lastmod}</lastmod>
