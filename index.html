@@ -25,80 +25,77 @@
     
     <!-- Structured Data JSON-LD -->
     <script type="application/ld+json">
-    { 
-       "@context": "https://schema.org/", 
-       "@type": "AutoPartsStore", 
-       "name": "Skina Eco Peças", 
-       "description": "Referência em peças automotivas no Setor H Norte, oferecendo produtos originais e acessórios de alta qualidade das melhores marcas do mercado", 
-       "url": "https://skinaecopecas.com.br", 
-       "logo": "https://skinaecopecas.com.br/logo.png",
-       "image": "https://skinaecopecas.com.br/logo.png",
-       "telephone": "+55-61-99850-1771",
-       "priceRange": "R$ 20 - R$ 500", 
-       "address": { 
-         "@type": "PostalAddress", 
-         "streetAddress": "Setor H Norte", 
-         "addressLocality": "Brasília", 
-         "addressRegion": "DF", 
-         "postalCode": "72130-721", 
-         "addressCountry": "BR" 
-       }, 
-       "contactPoint": { 
-         "@type": "ContactPoint", 
-         "contactType": "customer service", 
-         "availableLanguage": "Portuguese", 
-         "telephone": "+55-61-99850-1771" 
-       },
-      "brand": ["Jeep", "Mopar", "Fiat", "Chevrolet", "Volkswagen", "RAM"],
-      "serviceArea": {
-        "@type": "Country",
-        "name": "Brasil"
+    [
+      {
+        "@context": "https://schema.org/",
+        "@type": "AutoPartsStore",
+        "name": "Skina Eco Peças",
+        "description": "Referência em peças automotivas no Setor H Norte, oferecendo produtos originais e acessórios de alta qualidade das melhores marcas do mercado",
+        "url": "https://skinaecopecas.com.br",
+        "logo": "https://skinaecopecas.com.br/lovable-uploads/8a0fe179-938f-4738-9857-d6aee154845b.png",
+         "image": "https://skinaecopecas.com.br/lovable-uploads/8a0fe179-938f-4738-9857-d6aee154845b.png",
+        "telephone": "+55-61-99850-1771",
+        "priceRange": "R$ 20 - R$ 500",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Setor H Norte",
+          "addressLocality": "Brasília",
+          "addressRegion": "DF",
+          "postalCode": "72130-721",
+          "addressCountry": "BR"
+        },
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "contactType": "customer service",
+          "availableLanguage": "Portuguese",
+          "telephone": "+55-61-99850-1771"
+        },
+        "brand": ["Jeep", "Mopar", "Fiat", "Chevrolet", "Volkswagen", "RAM"],
+        "serviceArea": {
+          "@type": "Country",
+          "name": "Brasil"
+        },
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.8",
+          "reviewCount": "127",
+          "bestRating": "5",
+          "worstRating": "1"
+        },
+        "openingHours": "Mo-Fr 08:00-18:00, Sa 08:00-12:00",
+        "paymentAccepted": ["Cash", "Credit Card", "Debit Card", "Bank Transfer"],
+        "currenciesAccepted": "BRL"
       },
-      "hasOfferCatalog": { 
-         "@type": "OfferCatalog", 
-         "name": "Catálogo de Autopeças", 
-         "itemListElement": [ 
-           { 
-             "@type": "Offer", 
-             "availability": "https://schema.org/InStock",
-             "price": "50.00",
-             "priceCurrency": "BRL",
-             "priceValidUntil": "2025-12-31",
-             "url": "https://skinaecopecas.com.br",
-             "seller": {
-               "@type": "Organization",
-               "name": "Skina Eco Peças",
-               "url": "https://skinaecopecas.com.br"
-             },
-             "itemOffered": { 
-               "@type": "Product", 
-               "name": "Peças Automotivas Originais",
-               "description": "Peças automotivas originais de alta qualidade para veículos Jeep, Mopar, Fiat, Chevrolet, Volkswagen e RAM",
-               "sku": "AUTO-PARTS-001", 
-               "category": "Automotive Parts",
-               "brand": ["Jeep", "Mopar", "Fiat", "Chevrolet", "Volkswagen", "RAM"],
-               "aggregateRating": {
-                 "@type": "AggregateRating",
-                 "ratingValue": "4.8",
-                 "reviewCount": "127",
-                 "bestRating": "5",
-                 "worstRating": "1"
-               }
-             } 
-           } 
-         ] 
-       },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.8",
-        "reviewCount": "127",
-        "bestRating": "5",
-        "worstRating": "1"
-      },
-      "openingHours": "Mo-Fr 08:00-18:00, Sa 08:00-12:00",
-      "paymentAccepted": ["Cash", "Credit Card", "Debit Card", "Bank Transfer"],
-      "currenciesAccepted": "BRL"
-    }
+      {
+        "@context": "https://schema.org/",
+        "@type": "Product",
+        "name": "Peças Automotivas Originais",
+        "description": "Peças automotivas originais de alta qualidade para veículos Jeep, Mopar, Fiat, Chevrolet, Volkswagen e RAM",
+        "sku": "AUTO-PARTS-001",
+        "category": "Automotive Parts",
+        "brand": ["Jeep", "Mopar", "Fiat", "Chevrolet", "Volkswagen", "RAM"],
+        "offers": {
+          "@type": "Offer",
+          "availability": "https://schema.org/InStock",
+          "price": "50.00",
+          "priceCurrency": "BRL",
+          "priceValidUntil": "2025-12-31",
+          "url": "https://skinaecopecas.com.br",
+          "seller": {
+            "@type": "Organization",
+            "name": "Skina Eco Peças",
+            "url": "https://skinaecopecas.com.br"
+          }
+        },
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.8",
+          "reviewCount": "127",
+          "bestRating": "5",
+          "worstRating": "1"
+        }
+      }
+    ]
     </script>
   </head>
 
