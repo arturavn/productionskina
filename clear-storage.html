@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpar Storage e Testar Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .danger {
+            background: #dc3545;
+        }
+        .danger:hover {
+            background: #c82333;
+        }
+        .success {
+            background: #28a745;
+        }
+        .success:hover {
+            background: #218838;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Limpar Storage e Testar Login</h1>
+        
+        <div class="section">
+            <h3>📋 Status do localStorage</h3>
+            <button onclick="checkStorage()">Verificar Storage</button>
+            <div id="storageStatus" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h3>🗑️ Limpar Storage</h3>
+            <button onclick="clearStorage()" class="danger">Limpar localStorage</button>
+            <button onclick="clearSessionStorage()" class="danger">Limpar sessionStorage</button>
+            <button onclick="clearAllStorage()" class="danger">Limpar Tudo</button>
+        </div>
+
+        <div class="section">
+            <h3>🔐 Testar Login</h3>
+            <div>
+                <input type="email" id="email" placeholder="Email" value="admin@skinaecopecas.com.br">
+                <input type="password" id="password" placeholder="Senha" value="password">
+            </div>
+            <button onclick="testLogin()" class="success">Testar Login</button>
+            <div id="loginResult" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h3>👤 Testar Perfil</h3>
+            <button onclick="testProfile()">Buscar Perfil</button>
+            <div id="profileResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        function checkStorage() {
+            const result = document.getElementById('storageStatus');
+            const storage = {};
+            
+            // localStorage
+            storage.localStorage = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                storage.localStorage[key] = localStorage.getItem(key);
+            }
+            
+            // sessionStorage
+            storage.sessionStorage = {};
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                storage.sessionStorage[key] = sessionStorage.getItem(key);
+            }
+            
+            result.textContent = JSON.stringify(storage, null, 2);
+        }
+
+        function clearStorage() {
+            localStorage.clear();
+            document.getElementById('storageStatus').textContent = 'localStorage limpo!';
+            setTimeout(checkStorage, 500);
+        }
+
+        function clearSessionStorage() {
+            sessionStorage.clear();
+            document.getElementById('storageStatus').textContent = 'sessionStorage limpo!';
+            setTimeout(checkStorage, 500);
+        }
+
+        function clearAllStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            document.getElementById('storageStatus').textContent = 'Todos os storages limpos!';
+            setTimeout(checkStorage, 500);
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const result = document.getElementById('loginResult');
+            
+            try {
+                result.textContent = 'Fazendo login...';
+                
+                const response = await fetch('http://localhost:3001/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    // Salvar token no localStorage
+                    localStorage.setItem('auth_token', data.data.token);
+                    result.textContent = `✅ Login bem-sucedido!\n\nToken: ${data.data.token.substring(0, 50)}...\nUsuário: ${data.data.user.name}\nEmail: ${data.data.user.email}`;
+                } else {
+                    result.textContent = `❌ Erro no login:\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                result.textContent = `❌ Erro de rede:\n${error.message}`;
+            }
+        }
+
+        async function testProfile() {
+            const result = document.getElementById('profileResult');
+            const token = localStorage.getItem('auth_token');
+            
+            if (!token) {
+                result.textContent = '❌ Nenhum token encontrado. Faça login primeiro.';
+                return;
+            }
+            
+            try {
+                result.textContent = 'Buscando perfil...';
+                
+                const response = await fetch('http://localhost:3001/api/auth/profile', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    result.textContent = `✅ Perfil carregado!\n\n${JSON.stringify(data.user, null, 2)}`;
+                } else {
+                    result.textContent = `❌ Erro ao carregar perfil:\nStatus: ${response.status}\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                result.textContent = `❌ Erro de rede:\n${error.message}`;
+            }
+        }
+
+        // Verificar storage ao carregar a página
+        window.onload = function() {
+            checkStorage();
+        };
+    </script>
+</body>
+</html>

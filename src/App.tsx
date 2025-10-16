@@ -53,11 +53,19 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            {/* SEO-friendly URLs with keywords */}
             <Route path="/categoria/:categoryName" element={<Category />} />
+            <Route path="/pecas/:categoryName" element={<Category />} />
+            <Route path="/autopecas/:categoryName" element={<Category />} />
             <Route path="/contato" element={<Contact />} />
             <Route path="/produtos" element={<AllProducts />} />
-            <Route path="/produto/:productId" element={<ProductDetail />} />
+            <Route path="/pecas" element={<AllProducts />} />
+            <Route path="/autopecas" element={<AllProducts />} />
+            <Route path="/produto/:productSlug" element={<ProductDetail />} />
+            <Route path="/peca/:productSlug" element={<ProductDetail />} />
+            <Route path="/autopeca/:productSlug" element={<ProductDetail />} />
             <Route path="/busca" element={<SearchResults />} />
+            <Route path="/buscar-pecas" element={<SearchResults />} />
             <Route path="/carrinho" element={<Cart />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />

@@ -11,6 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Button } from '@/components/ui/button';
 import { ChevronDown, Car, Filter } from 'lucide-react';
 import { useBrands, useProductsByCategory } from '@/hooks/useApi';
+import { useSEO, generateCategorySEO } from '@/hooks/useSEO';
 
 const Category = () => {
   const { categoryName } = useParams<{ categoryName: string }>();
@@ -67,6 +68,11 @@ const Category = () => {
     };
     return descriptions[category || ''] || 'Produtos de qualidade para seu veículo.';
   };
+
+  // SEO dinâmico para a categoria
+  useSEO(
+    categoryName ? generateCategorySEO(getCategoryTitle(categoryName)) : null
+  );
 
   // Filtrar produtos baseado nas seleções
   const filteredProducts = products.filter(product => {

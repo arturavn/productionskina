@@ -16,6 +16,7 @@ class Product {
     this.specifications = data.specifications;
     this.compatibility = data.compatibility;
     this.sku = data.sku;
+    this.slug = data.slug; // Campo slug para URLs amigáveis
     this.weight = data.weight;
     this.dimensions = data.dimensions;
     // Dimensões físicas agora vêm da categoria (com fallback para o produto)
@@ -306,6 +307,20 @@ class Product {
     return result.rows.length > 0 ? new Product(result.rows[0]) : null;
   }
 
+  // Buscar produto por slug
+  static async findBySlug(slug) {
+    const sql = `
+      SELECT p.*, c.name as category_name,
+             c.width_cm as category_width_cm, c.height_cm as category_height_cm,
+             c.length_cm as category_length_cm, c.weight_kg as category_weight_kg
+      FROM products p 
+      LEFT JOIN categories c ON p.category_id = c.id 
+      WHERE p.slug = $1 AND p.active = true
+    `;
+    const result = await query(sql, [slug]);
+    return result.rows.length > 0 ? new Product(result.rows[0]) : null;
+  }
+
   // Gerar SKU único
   static async generateUniqueSku(baseSku = null) {
     let sku = baseSku;
@@ -332,6 +347,40 @@ class Product {
     }
     
     return finalSku;
+  }
+
+  // Gerar slug único baseado no nome do produto
+  static async generateUniqueSlug(productName, productId = null) {
+    // Usar a função SQL generate_slug para criar o slug base
+    const slugSql = 'SELECT generate_slug($1) as slug';
+    const slugResult = await query(slugSql, [productName]);
+    let baseSlug = slugResult.rows[0].slug;
+    
+    // Verificar se o slug já existe (excluindo o próprio produto se for uma atualização)
+    let counter = 0;
+    let finalSlug = baseSlug;
+    
+    while (true) {
+      let checkSql = 'SELECT id FROM products WHERE slug = $1';
+      let checkParams = [finalSlug];
+      
+      // Se for uma atualização, excluir o próprio produto da verificação
+      if (productId) {
+        checkSql += ' AND id != $2';
+        checkParams.push(productId);
+      }
+      
+      const checkResult = await query(checkSql, checkParams);
+      
+      if (checkResult.rows.length === 0) {
+        break; // Slug é único
+      }
+      
+      counter++;
+      finalSlug = `${baseSlug}-${counter}`;
+    }
+    
+    return finalSlug;
   }
 
   // Criar novo produto
@@ -367,15 +416,18 @@ class Product {
       // Verificar se o SKU fornecido já existe e gerar um único se necessário
       sku = await Product.generateUniqueSku(sku);
     }
-    
+
+    // Gerar slug único baseado no nome do produto
+    const slug = await Product.generateUniqueSlug(productData.name);
+
     const sql = `
       INSERT INTO products (
         name, description, original_price, discount_price, image_url, 
         brand, category_id, stock_quantity, in_stock, specifications, 
-        compatibility, sku, weight, dimensions, width_cm, height_cm, 
+        compatibility, sku, slug, weight, dimensions, width_cm, height_cm, 
         length_cm, weight_kg, featured, active, use_category_dimensions, ml_id, ml_seller_id, ml_family_id
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25
       ) RETURNING *
     `;
     
@@ -392,6 +444,7 @@ class Product {
       JSON.stringify(productData.specifications || {}),
       productData.compatibility || [],
       sku, // Usar o SKU gerado/validado
+      slug, // Usar o slug gerado
       productData.weight,
       JSON.stringify(productData.dimensions || {}),
       productData.widthCm,
@@ -415,6 +468,12 @@ class Product {
     const fields = [];
     const params = [];
     let paramCount = 0;
+
+    // Se o nome foi alterado, regenerar o slug
+    if (productData.name) {
+      const newSlug = await Product.generateUniqueSlug(productData.name, id);
+      productData.slug = newSlug;
+    }
 
     // Construir query dinamicamente baseada nos campos fornecidos
     Object.keys(productData).forEach(key => {
@@ -1243,6 +1302,7 @@ class Product {
       specifications: this.specifications,
       compatibility: this.compatibility,
       sku: this.sku,
+      slug: this.slug,
       weight: this.weight,
       dimensions: this.dimensions,
       viewCount: this.viewCount,

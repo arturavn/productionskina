@@ -17,6 +17,7 @@ interface ProductCardProps {
   image?: string;
   imageUrl?: string;
   brand: string;
+  slug?: string;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({
@@ -28,7 +29,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
   discount_price,
   image,
   imageUrl,
-  brand
+  brand,
+  slug
 }) => {
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -64,7 +66,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     : 0;
 
   const handleViewDetails = () => {
-    navigate(`/produto/${id}`);
+    navigate(`/produto/${slug || id}`);
   };
   
   const handlePrevImage = (e: React.MouseEvent) => {

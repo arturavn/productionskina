@@ -12,21 +12,22 @@ import { ArrowLeft, Truck, Shield, Calendar, Package } from 'lucide-react';
 import { useProduct, useAddToCart, useCartSession, useProductImages, useLastPurchase, useAnyPurchase, useAuth } from '@/hooks/useApi';
 import { toast } from 'sonner';
 import ProductDimensions from '@/components/ProductDimensions';
+import { useSEO, generateProductSEO } from '@/hooks/useSEO';
 
 const ProductDetail = () => {
-  const { productId } = useParams();
+  const { productSlug } = useParams();
   const navigate = useNavigate();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   // Todos os hooks devem ser chamados no topo do componente
-  const { data: productResponse, isLoading, error } = useProduct(productId || '');
+  const { data: productResponse, isLoading, error } = useProduct(productSlug || '');
   const product = productResponse;
-  const { data: productImagesData } = useProductImages(productId || '');
+  const { data: productImagesData } = useProductImages(productSlug || '');
   const addToCartMutation = useAddToCart();
   const { sessionId } = useCartSession();
   const { user, isAuthenticated } = useAuth();
-  const { data: lastPurchase, isLoading: isLoadingLastPurchase } = useLastPurchase(productId || '');
-  const { data: anyPurchase, isLoading: isLoadingAnyPurchase } = useAnyPurchase(productId || '');
+  const { data: lastPurchase, isLoading: isLoadingLastPurchase } = useLastPurchase(productSlug || '');
+  const { data: anyPurchase, isLoading: isLoadingAnyPurchase } = useAnyPurchase(productSlug || '');
 
   // Scroll para o topo quando a página carregar
   useEffect(() => {
@@ -36,7 +37,12 @@ const ProductDetail = () => {
   // Reset do índice selecionado quando as imagens mudarem
   useEffect(() => {
     setSelectedImageIndex(0);
-  }, [productId]);
+  }, [productSlug]);
+
+  // SEO dinâmico para o produto
+  useSEO(
+    product?.product ? generateProductSEO(product.product) : null
+  );
 
   const handleAddToCart = async () => {
     if (!productResponse?.product || !sessionId) {
