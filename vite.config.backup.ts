@@ -9,13 +9,15 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 5173,
     strictPort: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-        secure: false,
+    ...(mode === 'development' && {
+      proxy: {
+        '/api': {
+          target: 'http://localhost:3001',
+          changeOrigin: true,
+          secure: false,
+        },
       },
-    },
+    }),
   },
   plugins: [
     react(),

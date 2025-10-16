@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Login - Skina Ecopeças</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .danger {
+            background: #dc3545;
+        }
+        .danger:hover {
+            background: #c82333;
+        }
+        .success {
+            background: #28a745;
+        }
+        .success:hover {
+            background: #218838;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .success-result {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error-result {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info-result {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Teste de Autenticação - Skina Ecopeças</h1>
+        
+        <div class="form-group">
+            <button onclick="clearStorage()" class="danger">🗑️ Limpar localStorage</button>
+            <button onclick="checkStorage()" class="success">📋 Verificar localStorage</button>
+            <button onclick="testAPI()" class="success">🔍 Testar API</button>
+        </div>
+
+        <form onsubmit="testLogin(event)">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" value="admin@skinaecopecas.com.br" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Senha:</label>
+                <input type="password" id="password" value="password" required>
+            </div>
+            
+            <button type="submit">🔑 Fazer Login</button>
+        </form>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3001/api';
+        
+        function showResult(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${type}-result`;
+            resultDiv.textContent = message;
+        }
+
+        function clearStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            showResult('✅ localStorage e sessionStorage limpos com sucesso!', 'success');
+        }
+
+        function checkStorage() {
+            const authToken = localStorage.getItem('auth_token');
+            const allKeys = Object.keys(localStorage);
+            
+            let message = `📋 Estado do localStorage:\n\n`;
+            message += `🔑 auth_token: ${authToken ? 'PRESENTE' : 'AUSENTE'}\n`;
+            message += `📊 Total de chaves: ${allKeys.length}\n\n`;
+            
+            if (allKeys.length > 0) {
+                message += `🗂️ Todas as chaves:\n`;
+                allKeys.forEach(key => {
+                    const value = localStorage.getItem(key);
+                    message += `  • ${key}: ${value ? value.substring(0, 50) + (value.length > 50 ? '...' : '') : 'null'}\n`;
+                });
+            }
+            
+            showResult(message, 'info');
+        }
+
+        async function testAPI() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const data = await response.json();
+                showResult(`✅ API está funcionando!\n\nStatus: ${response.status}\nResposta: ${JSON.stringify(data, null, 2)}`, 'success');
+            } catch (error) {
+                showResult(`❌ Erro ao testar API:\n\n${error.message}`, 'error');
+            }
+        }
+
+        async function testLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                showResult('🔄 Fazendo login...', 'info');
+                
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    // Salvar token no localStorage
+                    localStorage.setItem('auth_token', data.data.token);
+                    
+                    showResult(`✅ Login realizado com sucesso!\n\n` +
+                             `👤 Usuário: ${data.data.user.name}\n` +
+                             `📧 Email: ${data.data.user.email}\n` +
+                             `🔑 Role: ${data.data.user.role}\n` +
+                             `⏰ Token expira em: ${data.data.expiresIn}\n\n` +
+                             `🔐 Token salvo no localStorage!`, 'success');
+                } else {
+                    showResult(`❌ Erro no login:\n\n${data.message || 'Erro desconhecido'}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Erro ao fazer login:\n\n${error.message}`, 'error');
+            }
+        }
+
+        // Verificar estado inicial
+        window.onload = function() {
+            checkStorage();
+        };
+    </script>
+</body>
+</html>

@@ -7,6 +7,7 @@ import ProductCard from '@/components/ProductCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useProducts, useCategories } from '@/hooks/useApi';
+import { useSEO } from '@/hooks/useSEO';
 
 const AllProducts = () => {
   const [selectedCategory, setSelectedCategory] = useState('todos');
@@ -16,6 +17,16 @@ const AllProducts = () => {
   const { data: totalProductsData } = useProducts({ limit: 999999 }); // Para obter o total real
   const { data: categoriesData } = useCategories();
   
+  // SEO dinâmico para a página de todos os produtos
+  useSEO({
+    title: 'Todos os Produtos - Skina Ecopeças',
+    description: 'Navegue por todos os nossos produtos organizados por categoria. Encontre exatamente o que você precisa para seu veículo com qualidade e preço justo.',
+    keywords: 'autopeças, peças automotivas, todos os produtos, skina ecopeças, motores, suspensão, freios, acessórios',
+    ogTitle: 'Todos os Produtos - Skina Ecopeças',
+    ogDescription: 'Navegue por todos os nossos produtos organizados por categoria. Encontre exatamente o que você precisa para seu veículo.',
+    canonical: `${window.location.origin}/produtos`
+  });
+
   // Organizar produtos por categoria
   const allProducts = allProductsData?.data?.products || [];
   const totalProducts = totalProductsData?.data?.products || [];

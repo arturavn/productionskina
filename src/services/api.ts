@@ -26,6 +26,7 @@ export interface Product {
   heightCm?: number;
   lengthCm?: number;
   weightKg?: number;
+  slug?: string;
 }
 
 export interface CartItem {

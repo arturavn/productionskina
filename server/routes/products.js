@@ -246,7 +246,26 @@ router.get('/brands', async (req, res) => {
 router.get('/:id/images', async (req, res) => {
   try {
     const { id } = req.params;
-    const images = await Product.getImages(id);
+    let product = null;
+    
+    // Primeiro, tentar buscar por ID (UUID)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    
+    if (isUUID) {
+      product = await Product.findById(id);
+    } else {
+      // Se não for UUID, tentar buscar por slug
+      product = await Product.findBySlug(id);
+    }
+    
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: `Produto com identificador ${id} não foi encontrado`
+      });
+    }
+    
+    const images = await Product.getImages(product.id);
     
     res.json({
       success: true,
@@ -297,30 +316,46 @@ router.get('/images/:imageId', async (req, res) => {
   }
 });
 
-// GET /api/products/:id - Buscar produto por ID
+// GET /api/products/:id - Buscar produto por ID ou slug
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const product = await Product.findById(id);
+    let product = null;
+    
+    // Primeiro, tentar buscar por ID (UUID)
+    // UUIDs têm formato específico com hífens
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    
+    if (isUUID) {
+      product = await Product.findById(id);
+      
+      // Se encontrou o produto por UUID, redirecionar para a URL com slug (301 Redirect)
+      if (product && product.slug) {
+        return res.redirect(301, `/api/products/${product.slug}`);
+      }
+    } else {
+      // Se não for UUID, tentar buscar por slug
+      product = await Product.findBySlug(id);
+    }
     
     if (!product) {
       return res.status(404).json({
         success: false,
-        message: `Produto com ID ${id} não foi encontrado`
+        message: `Produto com identificador ${id} não foi encontrado`
       });
     }
     
     // Incrementar contador de visitas (não bloquear a resposta se falhar)
-    Product.incrementViewCount(id)
+    Product.incrementViewCount(product.id)
       .then(newCount => {
-        console.log(`✅ Visitas incrementadas para produto ${id}: ${newCount}`);
+        console.log(`✅ Visitas incrementadas para produto ${product.id}: ${newCount}`);
       })
       .catch(error => {
         console.error('❌ Erro ao incrementar contador de visitas:', error);
       });
     
     // Buscar imagens do produto
-    const images = await Product.getImages(id);
+    const images = await Product.getImages(product.id);
     const productData = product.toJSON();
     
     // Priorizar imagens do Mercado Livre se o produto tiver ml_id

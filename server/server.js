@@ -7,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import WebhookRetryService from './services/WebhookRetryService.js';
 import MercadoLivreSyncService from './services/MercadoLivreSyncService.js';
+import SEOService from './services/SEOService.js';
 
 // Configurar variáveis de ambiente PRIMEIRO
 // Carregar .env da raiz do projeto (../.env)
@@ -31,6 +32,7 @@ import testRoutes from './routes/test.js';
 import couponRoutes from './routes/coupons.js';
 import slidesRoutes from './routes/slides.js';
 import mercadoLivreRoutes from './routes/mercado_livre.js';
+import sitemapRoutes from './routes/sitemap.js';
 
 
 const app = express();
@@ -132,6 +134,9 @@ app.use('/api/coupons', couponRoutes);
 app.use('/api/slides', slidesRoutes);
 app.use('/api/mercado_livre', mercadoLivreRoutes);
 
+// Rotas de SEO (sitemap e robots)
+app.use('/', sitemapRoutes);
+
 
 // Rota de health check
 app.get('/api/health', (req, res) => {
@@ -172,8 +177,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Servir o frontend para todas as rotas não-API
-app.get('*', (req, res) => {
+// Servir o frontend para todas as rotas não-API com SEO dinâmico
+app.get('*', async (req, res) => {
   // Se a rota começa com /api, retorna 404 JSON
   if (req.path.startsWith('/api')) {
     return res.status(404).json({
@@ -181,8 +186,22 @@ app.get('*', (req, res) => {
       message: `A rota ${req.originalUrl} não existe`
     });
   }
-  // Caso contrário, serve o frontend
-  res.sendFile(path.join(__dirname, '../dist/index.html'));
+  
+  try {
+    // Gerar SEO dinâmico baseado na URL
+    const seoService = new SEOService();
+    const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+    const seoData = await seoService.generateSEOForURL(fullUrl);
+    const htmlWithSEO = seoService.injectMetaTags(seoData);
+    
+    // Servir HTML com meta tags dinâmicas
+    res.setHeader('Content-Type', 'text/html');
+    res.send(htmlWithSEO);
+  } catch (error) {
+    console.error('Erro ao gerar SEO:', error);
+    // Fallback para HTML estático em caso de erro
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  }
 });
 
 // Iniciar servidor
